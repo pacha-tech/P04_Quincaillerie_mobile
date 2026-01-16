@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:p04_mobile/pages/widgets/SearchBarWidget.dart';
-import 'package:p04_mobile/widgets/CategoryWidget.dart';
+import 'package:p04_mobile/pages/widgets/CategoryWidget.dart';
 import '../../modele/Product.dart';
 import '../../service/ApiService.dart';
 
@@ -26,12 +26,11 @@ class _HomePageState extends State<HomePage> {
   final ApiService _apiService = ApiService();
 
   bool _hasSearched = false;
+  bool _isSearching = false;
 
   Future<void> _handleSearch(String query) async {
     print("debut de la recherche pour: $query");
-    if (query
-        .trim()
-        .isEmpty) {
+    if (query.trim().isEmpty) {
       setState(() {
         _hasSearched = false;
       });
@@ -88,6 +87,11 @@ class _HomePageState extends State<HomePage> {
                     _searchController.clear();
                     _handleSearch("");
                   },
+                  onFocusChanged: (focused) {
+                    setState(() {
+                      _isSearching = focused;
+                    });
+                  },
                 )
             ),
             IconButton(
@@ -96,125 +100,179 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(context, MaterialPageRoute(
                       builder: (context) => const ProfilePage())),
             ),
-            IconButton(
-              icon: const Icon(
-                  Icons.shopping_cart, color: Colors.black, size: 20),
-              onPressed: () =>
-                  Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const CartPage())),
-            ),
+            if (!_isSearching)
+              IconButton(
+                icon: const Icon(
+                    Icons.shopping_cart, color: Colors.black, size: 20),
+                onPressed: () =>
+                    Navigator.push(context, MaterialPageRoute(
+                        builder: (context) => const CartPage())),
+              ),
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // --- HEADER CATÉGORIES ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-              child: Row(
+      body: Padding(
+        padding: EdgeInsetsGeometry.all(10),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Catégories", style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text("Catégories",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold
+                      ),
+                  ),
                   TextButton(
                       onPressed: () =>
                           Navigator.push(context, MaterialPageRoute(
-                              builder: (context) => const AllCategoriesPage())),
+                              builder: (context) => const AllCategoriesPage()
+                          )
+                          ),
                       child: const Text("Voir plus")
                   ),
                 ],
               ),
-            ),
-            SizedBox(
-              height: 100,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  CategoryWidget(icon: Icons.build, name: "Outils"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                  CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
-                ],
+              SizedBox(
+                height: 80,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: const [
+                    CategoryWidget(icon: Icons.build, name: "Outils"),
+                    CategoryWidget(icon: Icons.format_paint, name: "Peinture"),
+                    CategoryWidget(icon: Icons.electric_bolt, name: "Electricite"),
+                    CategoryWidget(icon: Icons.water_drop_outlined, name: "Plomberie"),
+                    CategoryWidget(icon: Icons.cleaning_services, name: "Nettoyage"),
+                    CategoryWidget(icon: Icons.content_cut, name: "Coupe & sciage"),
+                  ],
+                ),
               ),
-            ),
-            // --- BANNIÈRE PRINCIPALE ---
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                  color: Colors.brown, borderRadius: BorderRadius.circular(15)),
-              child: Column(
-                children: [
-                  const Text("Tout pour vos chantiers", style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      Expanded(child: ElevatedButton(
-                          onPressed: () {}, child: const Text("Catalogue"))),
-                      const SizedBox(width: 10),
-                      Expanded(child: OutlinedButton(onPressed: () {},
-                          child: const Text("Vendre", style: TextStyle(
-                              color: Colors.white)))),
-                    ],
-                  )
-                ],
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: Colors.brown, borderRadius: BorderRadius.circular(15)),
+                child: Column(
+                  children: [
+                    const Text("Tout pour vos chantiers", style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(child: ElevatedButton(
+                            onPressed: () {}, child: const Text("Catalogue"))),
+                        const SizedBox(width: 10),
+                        Expanded(child: OutlinedButton(onPressed: () {},
+                            child: const Text("Vendre", style: TextStyle(
+                                color: Colors.white)))),
+                      ],
+                    )
+                  ],
+                ),
               ),
-            ),
-
-            // --- SECTION POUR VOUS ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Pour vous", style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-                  TextButton(onPressed: () {}, child: const Text("Voir plus")),
-                ],
+        
+              // --- SECTION POUR VOUS ---
+              Padding(
+                padding: const EdgeInsets.only(top: 15 , bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Pour vous", style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                    TextButton(onPressed: () {}, child: const Text("Voir plus")),
+                  ],
+                ),
               ),
-            ),
-            const Card(
-              margin: EdgeInsets.symmetric(horizontal: 16),
-              child: ListTile(
-                leading: Icon(Icons.star, color: Colors.blue),
-                title: Text("Fer à béton 12mm"),
-                trailing: Text("6.500 FCFA", style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.bold)),
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.star, color: Colors.blue),
+                  title: Text("Fer à béton 12mm"),
+                  trailing: Text("6.500 FCFA", style: TextStyle(
+                      color: Colors.green, fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-
-            // --- SECTION PROMOTIONS ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Promotions", style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-                  TextButton(onPressed: () {}, child: const Text("Voir plus")),
-                ],
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.star, color: Colors.blue),
+                  title: Text("Fer à béton 12mm"),
+                  trailing: Text("6.500 FCFA", style: TextStyle(
+                      color: Colors.green, fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-            const Card(
-              margin: EdgeInsets.symmetric(horizontal: 16),
-              child: ListTile(
-                leading: Icon(Icons.discount, color: Colors.red),
-                title: Text("Perceuse 750W"),
-                trailing: Text("28.000 FCFA", style: TextStyle(
-                    color: Colors.red, fontWeight: FontWeight.bold)),
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.star, color: Colors.blue),
+                  title: Text("Fer à béton 12mm"),
+                  trailing: Text("6.500 FCFA", style: TextStyle(
+                      color: Colors.green, fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.star, color: Colors.blue),
+                  title: Text("Fer à béton 12mm"),
+                  trailing: Text("6.500 FCFA", style: TextStyle(
+                      color: Colors.green, fontWeight: FontWeight.bold)),
+                ),
+              ),
+        
+              // --- SECTION PROMOTIONS ---
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Promotions", style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                    TextButton(onPressed: () {}, child: const Text("Voir plus")),
+                  ],
+                ),
+              ),
+              const Card(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                child: ListTile(
+                  leading: Icon(Icons.discount, color: Colors.red),
+                  title: Text("Perceuse 750W"),
+                  trailing: Text("28.000 FCFA", style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Card(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                child: ListTile(
+                  leading: Icon(Icons.discount, color: Colors.red),
+                  title: Text("Perceuse 750W"),
+                  trailing: Text("28.000 FCFA", style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Card(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                child: ListTile(
+                  leading: Icon(Icons.discount, color: Colors.red),
+                  title: Text("Perceuse 750W"),
+                  trailing: Text("28.000 FCFA", style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Card(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                child: ListTile(
+                  leading: Icon(Icons.discount, color: Colors.red),
+                  title: Text("Perceuse 750W"),
+                  trailing: Text("28.000 FCFA", style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

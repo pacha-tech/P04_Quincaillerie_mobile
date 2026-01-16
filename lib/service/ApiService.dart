@@ -4,7 +4,7 @@ import '../modele/Product.dart';
 
 class ApiService {
   // Utiliser 10.0.2.2 pour l'émulateur Android Studio
-  static const String baseUrl = 'http://192.168.0.108:9010/quincaillerie';
+  static const String baseUrl = 'https://p04-quincaillerie.onrender.com/quincaillerie';
 
   Future<List<Product>> searchProducts(String query) async {
     try {
@@ -17,6 +17,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
+      print("Details de l'erreur: $e");
       throw Exception('Erreur de connexion au serveur');
     }
   }
