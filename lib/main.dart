@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:p04_mobile/pages/homePage/HomePage.dart';
+import 'package:p04_mobile/widgets/MainNavigation.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.yellow,
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: HomePage(),
+      home: MainNavigation(),
       debugShowCheckedModeBanner: false,
     );
   }
