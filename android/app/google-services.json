@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "45227920622",
+    "project_id": "quincaillerie-423ea",
+    "storage_bucket": "quincaillerie-423ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:45227920622:android:2fad7b85264ebc6a4bb7ff",
+        "android_client_info": {
+          "package_name": "com.example.p04_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5rIzTX7QEwGpLgJMXqXdL2hmvQCxYPvM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
