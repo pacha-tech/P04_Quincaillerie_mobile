@@ -39,6 +39,8 @@ dependencies:
   decimal: ^3.2.4
   flutter_typeahead: ^5.2.0
   firebase_core: ^4.4.0
+  firebase_auth: ^6.1.4
+  awesome_dialog: ^3.3.0
 
 dev_dependencies:
   flutter_test:

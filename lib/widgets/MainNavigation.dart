@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../pages/authPages/client/LoginPage.dart';
+import '../pages/authPages/client/RegisterPage.dart';
 import '../pages/homePage/HomePage.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -13,12 +15,12 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
 
-  static const List<Widget> _pages = <Widget>[
-    Center(child: HomePage()),
-    Center(child: Text('Recherche de Ciment', style: TextStyle(fontSize: 20))),
+  static final List<Widget> _pages = <Widget>[
+    const Center(child: HomePage()),
+    Center(child: LoginPage()),
     //Center(child: Text('Panier / Commandes', style: TextStyle(fontSize: 20))),
-    Center(child: Text('Historique', style: TextStyle(fontSize: 20))),
-    Center(child: Text('Mon Profil', style: TextStyle(fontSize: 20))),
+    const Center(child: RegisterPage(page: MainNavigation(), label: "Inscrivez vous",)),
+    const Center(child: Text('Mon Profil', style: TextStyle(fontSize: 20))),
   ];
 
   void _onItemTapped(int index) {

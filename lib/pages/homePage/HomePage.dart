@@ -1,17 +1,18 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../service/ApiService.dart';
-import '../../widgets/app_footer.dart';
+import '../../widgets/FooterHomePage.dart';
 import '../PromotionsPage.dart';
 import '../recommended_products_page.dart';
 import '../../widgets/CategoryWidget.dart';
 import '../../widgets/SearchBarWidget.dart';
 import '../SearchResultPage.dart';
-import '../all_categories_page.dart';
+import '../AllCategoryPage.dart';
 import '../PanierPage.dart';
 import '../profile_page.dart';
 import '../notifications_page.dart';
 import '../catalog_page.dart';
-import '../become_seller_page.dart';
+import '../authPages/vendeur/become_seller_page.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -28,6 +29,21 @@ class _HomePageState extends State<HomePage> {
   bool _hasSearched = false;
   bool _isSearching = false;
   bool _isloading = false;
+  bool _islogin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+    print("isLogin1 vaut: $_islogin");
+  }
+
+  void _checkLoginStatus(){
+    setState(() {
+      _islogin = FirebaseAuth.instance.currentUser != null ;
+    });
+  }
+
 
   Future<void> _handleSearch(String query) async {
     print("debut de la recherche pour: $query");
@@ -183,80 +199,99 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                        color: Colors.brown,
-                        borderRadius: BorderRadius.circular(5)),
-                    child: Column(
-                      children: [
-                        const Text("Tout pour vos chantiers, au meilleur prix",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold)),
-                        const SizedBox(height:0),
-                        const Text(
-                            "Comparez les prix de certaines quincailleries au Cameroun. Outils, matériaux, équipement, tout est la.",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.normal)),
-                        const SizedBox(height: 15),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const CatalogPage()),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.yellow[800],
-                                  foregroundColor: Colors.black,
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 0),
-                                  minimumSize: const Size(double.infinity, 40),
-                                ),
-                                child: const Text("Explorer le catalogue", style: TextStyle(fontSize: 15)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const BecomeSellerPage()),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  elevation: 0,
-                                  side: BorderSide(
-                                    color: Colors.yellow.shade800,
-                                    width: 1.5,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 0),
-                                  minimumSize: const Size(double.infinity, 40),
-                                ),
-                                child: const Text(
-                                  "Devenir vendeur",
-                                  style: TextStyle(fontSize: 15),
-                                ),
-                              ),
-                            ),
-
-                          ],
+                  if(!_islogin)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20), // Plus d'espace pour respirer
+                      decoration: BoxDecoration(
+                        // Utilisation d'un dégradé pour un aspect plus "Premium"
+                        gradient: LinearGradient(
+                          colors: [Colors.brown.shade700, Colors.brown.shade900],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
+                        borderRadius: BorderRadius.circular(15), // Bords plus arrondis
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.brown.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, // Aligné à gauche
+                        children: [
+                          const Text(
+                            "Tout pour vos chantiers,\nau meilleur prix",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22, // Légèrement plus grand
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "Comparez les prix des quincailleries au Cameroun. Outils, matériaux, équipement...",
+                            style: TextStyle(
+                              color: Colors.white70, // Blanc cassé pour le texte secondaire
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              // BOUTON EXPLORER
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const CatalogPage()),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange.shade700,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Explorer", style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // BOUTON DEVENIR VENDEUR (Conditionnel)
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    // Si pas connecté, on envoie au login, sinon vers BecomeSeller
+                                    if (!_islogin) {
+                                      // Tu peux afficher un petit message ou rediriger
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text("Veuillez vous connecter d'abord"))
+                                      );
+                                    } else {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const BecomeSellerPage()),
+                                      );
+                                    }
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: const BorderSide(color: Colors.white54),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Vendre ici"),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
                   // --- SECTION POUR VOUS ---
                   Padding(
@@ -346,7 +381,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  const AppFooter(),
+                  AppFooter(isloging: _islogin),
 
                 ],
               ),
