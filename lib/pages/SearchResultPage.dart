@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:p04_mobile/pages/ProductDetaiByQuincaillerielPage.dart';
 import '../modele/Product.dart';
+import 'ProductDetaiByQuincaillerielPage.dart';
 
 class SearchResultsPage extends StatefulWidget {
   final List<Product> results;

@@ -1,7 +1,8 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:p04_mobile/pages/authPages/client/LoginPage.dart';
 import '../../../service/AuthService.dart';
+import '../../../widgets/MainNavigation.dart';
+import 'LoginPage.dart';
 
 class RegisterPage extends StatefulWidget {
   final Widget page;
@@ -147,11 +148,12 @@ class _RegisterScreenState extends State<RegisterPage> {
                   _isLoading = true;
                 });
                 try {
-                  await _authService.register(
+                  await _authService.registerCustomer(
                       emailController.text,
                       passwordController.text,
                       nameController.text,
-                      phoneController.text
+                      phoneController.text,
+                      "CLIENT"
                   );
                   if (!mounted) return;
                   print("DEBUT DE L'AFFICHAGE DU MESSAGE DE SUCCES");
@@ -160,13 +162,17 @@ class _RegisterScreenState extends State<RegisterPage> {
                     dialogType: DialogType.success,
                     animType: AnimType.bottomSlide, // Surgit du bas
                     title: "Bienvenue ${nameController.text} !",
-                    desc: 'Votre compte quincaillerie est prêt.',
+                    desc: 'Votre compte client est prêt.',
                     btnOkText: "C'est parti !",
                     btnOkColor: Colors.yellow[700],
                     buttonsTextStyle: const TextStyle(color: Colors.black),
                     btnOkOnPress: () {
                       // Le dialogue se fermera automatiquement ici
-                      Navigator.of(context).pop();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MainNavigation()),
+                            (route) => false,
+                      );
                     },
                     dismissOnTouchOutside: false,
                     dismissOnBackKeyPress: false,
@@ -205,16 +211,17 @@ class _RegisterScreenState extends State<RegisterPage> {
                )
                :const Text("S'INSCRIRE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Deja un compte ?"),
-                TextButton(
-                  onPressed: () => Navigator.push(context , MaterialPageRoute(builder: (context) => const LoginPage())),
-                  child: Text("Connectez vous", style: TextStyle(color: Colors.amber[800], fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
+            if(!_isLoading)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Deja un compte ?"),
+                  TextButton(
+                    onPressed: () => Navigator.pushReplacement(context , MaterialPageRoute(builder: (context) => const LoginPage())),
+                    child: Text("Connectez vous", style: TextStyle(color: Colors.amber[800], fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

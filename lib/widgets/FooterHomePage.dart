@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../pages/PromotionsPage.dart';
-import '../pages/authPages/vendeur/become_seller_page.dart';
+import '../pages/authPages/vendeur/RegisterVendeur1.dart';
 import '../pages/catalog_page.dart';
 import '../pages/help_and_legal_page.dart';
 
@@ -47,7 +47,7 @@ class AppFooter extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BecomeSellerPage())),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterVendeur1())),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF9A825),
                       foregroundColor: Colors.black,

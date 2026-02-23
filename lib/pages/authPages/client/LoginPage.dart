@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:p04_mobile/pages/authPages/client/RegisterPage.dart';
-import 'package:p04_mobile/pages/homePage/HomePage.dart';
-import 'package:p04_mobile/widgets/MainNavigation.dart';
+import '../../../widgets/MainNavigation.dart';
+import '../../homePage/HomePage.dart';
+import 'RegisterPage.dart';
 import '../../../service/AuthService.dart';
 
 class LoginPage extends StatefulWidget {
@@ -100,15 +100,16 @@ class _LoginPageState extends State<LoginPage> {
             ),
 
             // Mot de passe oublié (Optionnel)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  // Logique mot de passe oublié ici
-                },
-                child: Text("Mot de passe oublié ?", style: TextStyle(color: Colors.amber[800])),
+            if(!_isloading)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    // Logique mot de passe oublié ici
+                  },
+                  child: Text("Mot de passe oublié ?", style: TextStyle(color: Colors.amber[800])),
+                ),
               ),
-            ),
             const SizedBox(height: 24),
 
             // Bouton de connexion
@@ -128,11 +129,31 @@ class _LoginPageState extends State<LoginPage> {
                   await _authService.login(emailController.text, passwordController.text);
                   if (!mounted) return;
 
-                  // Redirection vers MainNavigation qui contient ta BottomBar
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MainNavigation())
-                  );
+                  AwesomeDialog(
+                    context: context,
+                    dialogType: DialogType.success,
+                    animType: AnimType.bottomSlide, // Surgit du bas
+                    title: "Heureux de vous revoir !",
+                    desc: 'Votre compte client est prêt.',
+                    btnOkText: "C'est parti !",
+                    btnOkColor: Colors.yellow[700],
+                    buttonsTextStyle: const TextStyle(color: Colors.black),
+                    btnOkOnPress: () {
+                      // Le dialogue se fermera automatiquement ici
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MainNavigation()),
+                            (route) => false,
+                      );
+                    },
+                    dismissOnTouchOutside: false,
+                    dismissOnBackKeyPress: false,
+                    onDismissCallback: (type) {
+                      //Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainNavigation()));
+                      //Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => widget.page));
+                      //Navigator.of(context).pop();
+                    },
+                  ).show();
                 } catch (e) {
                   AwesomeDialog(
                     context: context,
@@ -162,16 +183,17 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 24),
 
             // Lien vers Inscription
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Nouveau ici ?"),
-                TextButton(
-                  onPressed: () => Navigator.push(context , MaterialPageRoute(builder: (context) => const RegisterPage(page: HomePage(), label: "Rejoinez notre AmrketPlace pour les produits de quincaillerie"))),
-                  child: Text("Créer un compte", style: TextStyle(color: Colors.amber[800], fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
+            if(!_isloading)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Nouveau ici ?"),
+                  TextButton(
+                    onPressed: () => Navigator.pushReplacement(context , MaterialPageRoute(builder: (context) => const RegisterPage(page: HomePage(), label: "Rejoinez notre AmrketPlace pour les produits de quincaillerie"))),
+                    child: Text("Créer un compte", style: TextStyle(color: Colors.amber[800], fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
