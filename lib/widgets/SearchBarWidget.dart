@@ -72,13 +72,13 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     return RawAutocomplete<ProductSuggestion>(
       textEditingController: widget.controller,
       focusNode: _focusNode,
-      displayStringForOption: (ProductSuggestion option) => option.label,
+      displayStringForOption: (ProductSuggestion option) => option.nom,
       optionsBuilder: (TextEditingValue textEditingValue) async {
         if (textEditingValue.text.isEmpty) return const Iterable.empty();
-        return await ApiService().getSearchSuggestions(textEditingValue.text);
+        return await ApiService().getSuggestions();
       },
       onSelected: (ProductSuggestion selection) {
-        widget.onSearch(selection.label);
+        widget.onSearch(selection.nom);
         _focusNode.unfocus();
       },
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
@@ -130,9 +130,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   final ProductSuggestion option = options.elementAt(index);
                   return ListTile(
                     // Appel de la fonction de surbrillance ici
-                    title: _buildHighlightedText(option.label, widget.controller.text),
+                    title: _buildHighlightedText(option.nom, widget.controller.text),
                     trailing: Text(
-                      option.type,
+                      option.nom,
                       style: const TextStyle(fontSize: 11, color: Colors.blue),
                     ),
                     onTap: () => onSelected(option),

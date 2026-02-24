@@ -1,4 +1,5 @@
 import 'package:brixel/pages/pageVendeur/DashbordVendeur.dart';
+import 'package:brixel/pages/pageVendeur/StockPage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../pages/authPages/client/LoginPage.dart';
@@ -32,7 +33,7 @@ class _MainNavigationState extends State<MainNavigation> {
       // --- CONFIGURATION VENDEUR ---
       pages = [
         const DashboardVendeur(),
-        const Center(child: Text("Gestion Stock")),
+        const StockPage(),
         const Center(child: Text("Commandes Reçues")),
         const Center(child: Text("Profil Boutique")),
       ];
@@ -43,7 +44,7 @@ class _MainNavigationState extends State<MainNavigation> {
         BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Ventes'),
         BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Boutique'),
       ];
-    } else {
+    } else if(role == "CLIENT"){
       // --- CONFIGURATION CLIENT / GUEST ---
       pages = [
         const HomePage(),
@@ -56,9 +57,25 @@ class _MainNavigationState extends State<MainNavigation> {
 
       navItems = const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Chercher'),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Historique'),
+        BottomNavigationBarItem(icon: Icon(Icons.propane_tank_outlined), label: 'Projet'),
+        BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Favoris'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+      ];
+    }else{
+      pages = [
+        const HomePage(),
+        const Center(child: Text("Recherche")), // Ou LoginPage() selon ton besoin
+        //const LoginPage(),
+        const Center(child: Text("Historique")),
+        //const RegisterPage(page: HomePage(), label: ""),
+        const Center(child: Text("Profil")),
+      ];
+
+      navItems = const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+        BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'rien'),
+        BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'rien'),
+        BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'rien'),
       ];
     }
 

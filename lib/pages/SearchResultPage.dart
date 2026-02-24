@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../modele/Product.dart';
+import '../modele/ProductSearch.dart';
 import 'ProductDetaiByQuincaillerielPage.dart';
 
 class SearchResultsPage extends StatefulWidget {
-  final List<Product> results;
+  final List<ProductSearch> results;
   final String searchQuery;
 
   const SearchResultsPage({
@@ -102,7 +102,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 
   Widget _buildList() {
     // On trie la liste en fonction du filtre sélectionné
-    List<Product> sortedResults = List.from(widget.results);
+    List<ProductSearch> sortedResults = List.from(widget.results);
 
     sortedResults.sort((a, b) {
       double minA = a.prices.isNotEmpty ? a.prices.map((p) => p.price.toDouble()).reduce((c, n) => c < n ? c : n) : double.infinity;
@@ -158,7 +158,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   }
 
   // J'ai créé un petit helper pour plus de clarté
-  Widget _buildProductContent(Product product, bool hasPrices, double? minPrice) {
+  Widget _buildProductContent(ProductSearch product, bool hasPrices, double? minPrice) {
     return Column(
       children: [
         Row(
@@ -226,7 +226,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     );
   }
 
-  Widget _buildStoreList(Product product, bool hasPrices) {
+  Widget _buildStoreList(ProductSearch product, bool hasPrices) {
     if (!hasPrices) {
       return const Text("Aucune quincaillerie disponible",
           style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey, fontSize: 13));

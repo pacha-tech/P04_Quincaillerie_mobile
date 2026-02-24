@@ -1,7 +1,12 @@
 import 'dart:io';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:brixel/service/ApiService.dart';
+import 'package:provider/provider.dart';
+import '../../modele/Category.dart';
+import '../../provider/UserProvider.dart';
+import '../../widgets/MainNavigation.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -12,48 +17,106 @@ class AddProductPage extends StatefulWidget {
 
 class _AddProductPageState extends State<AddProductPage> {
   final _formKey = GlobalKey<FormState>();
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
 
-  // Controllers
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _brandController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
   final TextEditingController _buyPriceController = TextEditingController();
   final TextEditingController _sellPriceController = TextEditingController();
   final TextEditingController _stockController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
 
+  Category? _selectedCategory;
+  String _selectedUnit = 'Unité';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
-  bool _isExistingProduct = false; // Verrouillage si produit trouvé en BD
-  String _selectedCategory = 'Outillage';
-
-  final List<String> _categories = [
-    'Outillage', 'Plomberie', 'Électricité', 'Peinture', 'Maçonnerie', 'Quincaillerie'
+  final List<Category> _categories = [
+    Category(id: "CAT-OUT", name: "Outillage", description: "pour les outils"),
+    Category(id: "CAT-PLM", name: "Plomberie", description: "pour le plomberie"),
+    Category(id: "CAT-ELE", name: "Électricité", description: "Pour l'electricite"),
+    Category(id: "CAT-PEI", name: "Peinture", description: "pour le peinture"),
+    Category(id: "CAT-MAC", name: "Maçonnerie", description: "pour la maconnerie"),
+    Category(id: "CAT-QUI", name: "Quincaillerie", description: "pour le quincaillerie"),
   ];
 
-  // Simulation de ta base de données globale Brixel
-  final List<Map<String, String>> _globalProductsDB = [
-    {'name': 'Ciment CPJ45 Cimencam', 'category': 'Maçonnerie', 'desc': 'Sac de 50kg haute résistance'},
-    {'name': 'Marteau Arrache-clou 500g', 'category': 'Outillage', 'desc': 'Manche en fibre de verre'},
-    {'name': 'Peinture Glycéro Blanche 5L', 'category': 'Peinture', 'desc': 'Finition brillante, intérieur/extérieur'},
-  ];
+  final List<String> _units = ['Unité', 'Sac', 'Kilo', 'Mètre', 'Litre', 'Paquet', 'Tonne' , 'Bar'];
 
-  void _resetForm() {
-    setState(() {
-      _nameController.clear();
-      _buyPriceController.clear();
-      _sellPriceController.clear();
-      _stockController.clear();
-      _descController.clear();
-      _imageFile = null;
-      _isExistingProduct = false;
-      _selectedCategory = 'Outillage';
-    });
+  Future<void> _pickImage() async {
+    if(_isLoading){
+      return;
+    }
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) setState(() => _imageFile = File(picked.path));
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() => _imageFile = File(pickedFile.path));
+  void _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final String? qId = userProvider.quincaillerieId;
+
+    if (qId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erreur: ID Quincaillerie introuvable")),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+
+      print("Debut de l'appel de l'api pour enregistrer un produit");
+
+      await _apiService.addProduct(
+        _nameController.text,
+        "",
+        _brandController.text,
+        _selectedCategory!.id,
+        _buyPriceController.text,
+        _sellPriceController.text,
+        int.tryParse(_stockController.text) ?? 0,
+        _selectedUnit,
+        qId,
+        _descController.text,
+      );
+      if (!mounted) return;
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.bottomSlide,
+        title: "Produit ${_nameController.text} Ajouter avec succes au Stock",
+        desc: 'Votre Stock a ete mis a jour',
+        btnOkText: "Ok",
+        btnOkColor: Colors.yellow[700],
+        buttonsTextStyle: const TextStyle(color: Colors.black),
+        btnOkOnPress: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const MainNavigation()),
+                (route) => false,
+          );
+        },
+        dismissOnTouchOutside: false,
+        dismissOnBackKeyPress: false,
+        onDismissCallback: (type) {
+          //Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainNavigation()));
+          //Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => widget.page));
+          //Navigator.of(context).pop();
+        },
+      ).show();
+    } catch (e) {
+      debugPrint("Erreur lors de l'enregistrement : $e");
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        title: 'Oups !',
+        desc: 'Erreur : $e',
+        btnOkColor: Colors.red,
+      ).show();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -63,17 +126,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: const Text("Ajouter au Stock"),
-        actions: [
-          if (_isExistingProduct || _nameController.text.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: _resetForm,
-              tooltip: "Réinitialiser",
-            )
-        ],
-      ),
+      appBar: AppBar(title: const Text("Créer un Nouveau Produit")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -81,164 +134,91 @@ class _AddProductPageState extends State<AddProductPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- SECTION RECHERCHE / NOM ---
-              _buildSectionTitle("Rechercher dans Brixel"),
-              Autocomplete<Map<String, String>>(
-                displayStringForOption: (option) => option['name']!,
-                optionsBuilder: (textValue) {
-                  if (textValue.text.isEmpty) return const Iterable.empty();
-                  return _globalProductsDB.where((product) =>
-                      product['name']!.toLowerCase().contains(textValue.text.toLowerCase()));
-                },
-                onSelected: (selection) {
-                  setState(() {
-                    _isExistingProduct = true;
-                    _nameController.text = selection['name']!;
-                    _selectedCategory = selection['category']!;
-                    _descController.text = selection['desc']!;
-                  });
-                },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  // Synchroniser le controller de l'Autocomplete avec le nôtre
-                  if (_nameController.text != controller.text && _isExistingProduct) {
-                    controller.text = _nameController.text;
-                  }
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: _inputDecoration("Nom du produit", Icons.search_rounded),
-                    onChanged: (val) {
-                      _nameController.text = val;
-                      if (_isExistingProduct) setState(() => _isExistingProduct = false);
-                    },
-                    validator: (v) => v!.isEmpty ? "Le nom est requis" : null,
-                  );
-                },
-              ),
-
-              const SizedBox(height: 25),
-
-              // --- ZONE IMAGE (Version Ultra-Stable) ---
+              _buildSectionTitle("INFORMATIONS GÉNÉRALES"),
               Center(
-                child: Opacity(
-                  opacity: _isExistingProduct ? 0.6 : 1.0,
-                  child: GestureDetector(
-                    onTap: _isExistingProduct ? null : () => _pickImage(ImageSource.gallery),
-                    child: Container(
-                      height: 130,
-                      width: 130,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(25),
-                        // Une bordure simple mais élégante au lieu des pointillés
-                        border: Border.all(
-                          color: colorScheme.primary.withOpacity(0.2),
-                          width: 2,
-                        ),
-                      ),
-                      child: _imageFile != null
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(23),
-                        child: Image.file(_imageFile!, fit: BoxFit.cover),
-                      )
-                          : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo_rounded,
-                              color: colorScheme.primary, size: 35),
-                          const SizedBox(height: 8),
-                          Text("PHOTO",
-                              style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold
-                              )
-                          ),
-                        ],
-                      ),
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 110, width: 110,
+                    decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: colorScheme.primary.withOpacity(0.2))
                     ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // --- INFOS VERROUILLABLES ---
-              IgnorePointer(
-                ignoring: _isExistingProduct,
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      decoration: _inputDecoration("Catégorie", Icons.category_outlined),
-                      items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                      onChanged: (v) => setState(() => _selectedCategory = v!),
+                    child: _imageFile != null
+                        ? ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                        : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_a_photo_rounded, color: colorScheme.primary, size: 30),
+                        const Text("PHOTO", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descController,
-                      maxLines: 2,
-                      decoration: _inputDecoration("Description technique", Icons.description_outlined),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Divider(),
-              ),
-
-              // --- PRIX ET QUANTITÉ (Toujours libres) ---
-              _buildSectionTitle("Vos chiffres (Privé)"),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _buyPriceController,
-                      keyboardType: TextInputType.number,
-                      decoration: _inputDecoration("Prix d'achat", Icons.download_outlined),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _sellPriceController,
-                      keyboardType: TextInputType.number,
-                      decoration: _inputDecoration("Prix de vente", Icons.sell_outlined),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _stockController,
-                keyboardType: TextInputType.number,
-                decoration: _inputDecoration("Quantité en stock", Icons.inventory_2_outlined),
-                validator: (v) => v!.isEmpty ? "Indiquez le stock" : null,
-              ),
-
-              const SizedBox(height: 40),
-
-              // --- BOUTON VALIDER ---
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 4,
-                  ),
-                  child: Text(
-                    _isExistingProduct ? "METTRE À JOUR MON STOCK" : "CRÉER ET AJOUTER",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
+              _buildField(_nameController, "Nom du produit", Icons.shopping_bag_outlined),
+              const SizedBox(height: 15),
+              _buildField(_brandController, "Marque / Fabricant", Icons.branding_watermark_outlined),
+              const SizedBox(height: 15),
+              DropdownButtonFormField<Category>(
+                value: _selectedCategory,
+                isExpanded: true,
+                decoration: _inputDecoration("Catégorie", Icons.category_outlined),
+                items: _categories.map((Category c) => DropdownMenuItem<Category>(value: c, child: Text(c.name))).toList(),
+                onChanged: _isLoading ? null : (Category? c) => setState(() => _selectedCategory = c),
+                validator: (v) => v == null ? "Obligatoire" : null,
+              ),
+              const SizedBox(height: 15),
+              _buildField(_descController, "Description", Icons.description_outlined, maxLines: 2),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
+              _buildSectionTitle("INVENTAIRE & PRIX"),
+              Row(
+                children: [
+                  Expanded(child: _buildField(_buyPriceController, "Prix d'achat", Icons.monetization_on_outlined, isNumber: true)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildField(_sellPriceController, "Prix de vente", Icons.sell_outlined, isNumber: true)),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _buildField(_stockController, "Quantité", Icons.inventory_2_outlined, isNumber: true),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 3,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedUnit,
+                      isExpanded: true,
+                      decoration: _inputDecoration("Unité", Icons.straighten_rounded),
+                      items: _units.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                      onChanged: (v) => setState(() => _selectedUnit = v!),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                  ),
+                  onPressed: _isLoading ? null : _submitForm,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("CRÉER ET AJOUTER AU STOCK", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -248,9 +228,8 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(title.toUpperCase(),
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.grey, letterSpacing: 1.2)),
+      padding: const EdgeInsets.only(bottom: 15, left: 4),
+      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.blueGrey, letterSpacing: 1.1)),
     );
   }
 
@@ -266,16 +245,14 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isExistingProduct ? "Stock mis à jour !" : "Nouveau produit créé !"),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Navigator.pop(context);
-    }
+  Widget _buildField(TextEditingController controller, String label, IconData icon, {int maxLines = 1, bool isNumber = false}) {
+    return TextFormField(
+      controller: controller,
+      enabled: !_isLoading,
+      maxLines: maxLines,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: _inputDecoration(label, icon),
+      validator: (v) => v!.isEmpty ? "Obligatoire" : null,
+    );
   }
 }

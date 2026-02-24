@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../modele/Product.dart';
+import '../modele/ProductSearch.dart';
 import '../service/ApiService.dart';
 
 class QuincaillerieDetailsPage extends StatefulWidget {
   final String quincaillerieId;
-  final Product product;
+  final ProductSearch product;
 
   const QuincaillerieDetailsPage({
     super.key,

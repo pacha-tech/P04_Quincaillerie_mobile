@@ -3,7 +3,7 @@ import 'ApiService.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  ApiService apiService = ApiService();
+  ApiService _apiService = ApiService();
 
   Future<UserCredential?> registeToFirebase(String email, String password) async{
     return await _auth.createUserWithEmailAndPassword(email: email, password: password);
@@ -18,7 +18,7 @@ class AuthService {
     print("UID de l'user : $uid ");
     // 2. Envoi vers Spring Boot / MySQL
     print("AVANT L'APPEL D'API DU BACKEND");
-    await apiService.RegisterCustomer(name, uid, email, phone, role , "");
+    await _apiService.RegisterCustomer(name, uid, email, phone, role , "");
     print("APRES L'API DU BANKEND");
 
     }
@@ -29,20 +29,20 @@ class AuthService {
 
   }
 
-  Future<String> getUserRole() async {
+  Future<String?> getUserRole() async {
     final user = _auth.currentUser;
     if (user == null) return "GUEST";
 
     final idTokenResult = await user.getIdTokenResult(true);
 
-    return idTokenResult.claims?['role'] as String? ?? "CLIENT";
+    return idTokenResult.claims?['role'] as String?;
   }
 
   Future<void> registerQuincaillerie(String storeName , String region , String ville , String quartier , String precision , String description , double latitude , double longitude , String phone) async {
     String? uid = _auth.currentUser?.uid;
 
     if(uid != null ){
-      await apiService.registerQuincaillerie(uid ,  storeName, region, ville, quartier, precision, "" , description, latitude, longitude , phone);
+      await _apiService.registerQuincaillerie(uid, storeName, region, ville, quartier, precision, "", description, latitude, longitude, phone);
     }
   }
 
@@ -50,7 +50,7 @@ class AuthService {
     UserCredential? result = await registeToFirebase(email, password);
     String uid = result?.user?.uid ?? "";
 
-    await apiService.registerSeller(name, uid , email, phone, role , imageUserUrl , storeName , region , ville , quartier , precision , photoStoreUrl , description , latitude , longitude);
+    await _apiService.registerSeller(name, uid , email, phone, role , imageUserUrl , storeName , region , ville , quartier , precision , photoStoreUrl , description , latitude , longitude);
     }
 }
 

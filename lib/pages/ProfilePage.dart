@@ -49,7 +49,7 @@ class ProfilePage extends StatelessWidget {
         }
 
         final mySqlUser = apiSnapshot.data!;
-        return _buildProfileView(context, firebaseUser, mySqlUser, userRole ?? "CLIENT");
+        return _buildProfileView(context, firebaseUser, mySqlUser, userRole!);
       },
     );
   }
