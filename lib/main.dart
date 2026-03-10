@@ -1,10 +1,11 @@
-import 'package:brixel/theme/AppTheme.dart';
+import 'package:brixel/provider/SuggestionProvider.dart';
+import 'package:brixel/ui/theme/AppTheme.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
 import 'provider/UserProvider.dart';
-import 'widgets/MainNavigation.dart';
+import 'ui/widgets/MainNavigation.dart';
 
 
 Future<void> main() async {
@@ -30,6 +31,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => UserProvider(),
         ),
+        ChangeNotifierProvider(
+            create: (context) => SuggestionProvider()
+        )
       ],
       child: MaterialApp(
         title: 'Nom De l’App',

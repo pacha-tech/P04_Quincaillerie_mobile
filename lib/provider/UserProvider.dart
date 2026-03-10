@@ -10,12 +10,14 @@ enum AuthStatus { unknown, authenticated, unauthenticated }
 class UserProvider extends ChangeNotifier {
   String? _role;
   String? _quincaillerieId;
+  String? _token;
   AuthStatus _status = AuthStatus.unknown;
   User? _currentUser;
 
 
   String? get role => _role;
   String? get quincaillerieId => _quincaillerieId;
+  String? get token => _token;
   AuthStatus get status => _status;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isUnauthenticated => _status == AuthStatus.unauthenticated;
@@ -32,6 +34,7 @@ class UserProvider extends ChangeNotifier {
       if (user == null) {
         _role = null;
         _quincaillerieId = null;
+        _token = null;
         _status = AuthStatus.unauthenticated;
         notifyListeners();
       } else {
@@ -41,12 +44,12 @@ class UserProvider extends ChangeNotifier {
     });
   }
 
-  /// Charge le rôle et l'ID de quincaillerie depuis les Custom Claims
   Future<void> _loadUserClaims(User user) async {
     try {
 
       final idTokenResult = await user.getIdTokenResult(true);
 
+      _token = idTokenResult.token;
 
       final roleData = idTokenResult.claims?['role'];
       if (roleData is List) {
@@ -61,9 +64,26 @@ class UserProvider extends ChangeNotifier {
       debugPrint("Claims chargés : Rôle=$_role, Quincaillerie=$_quincaillerieId");
     } catch (e) {
       debugPrint("Erreur lecture claims : $e");
-      _role = 'CLIENT';
+      //_role = 'CLIENT';
     } finally {
       notifyListeners();
+    }
+  }
+
+  Future<void> refreshClaimsAfterLogin() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        // Force un refresh du token + claims (le true est important)
+        final idTokenResult = await user.getIdTokenResult(true);
+
+        // Recharge les claims
+        await _loadUserClaims(user);
+
+        debugPrint("Claims rafraîchis après login : rôle = $_role");
+      } catch (e) {
+        debugPrint("Erreur refresh claims après login : $e");
+      }
     }
   }
 
