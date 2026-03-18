@@ -24,7 +24,7 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
   final _formKey = GlobalKey<FormState>();
 
   bool isLoading = false;
-
+  late ColorScheme colorScheme;
   final _nomBoutiqueController = TextEditingController();
   final _precisionController = TextEditingController(); // anciennement quartier → précision
   final _descriptionController = TextEditingController();
@@ -97,11 +97,13 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
 
   @override
   Widget build(BuildContext context) {
+    colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text("Devenir vendeur sur Brixel"),
-        backgroundColor: const Color(0xFF795548),
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
@@ -112,18 +114,12 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                /*
-                const Text(
-                  "Vendez sur Brixel",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF4A2C1F),
-                  ),
-                  textAlign: TextAlign.center,
+                SizedBox(height: 20),
+                Text(
+                  "Informations sur votre boutique",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: colorScheme.secondary),
                 ),
-                const SizedBox(height: 5),
-                */
+                const SizedBox(height: 20),
 
                 Text(
                   "Rejoignez la première marketplace de quincaillerie au Cameroun\net développez votre activité",
@@ -147,11 +143,7 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
                 ),
                 const SizedBox(height: 35),
 
-                const Text(
-                  "Informations sur votre boutique",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFF4A2C1F)),
-                ),
-                const SizedBox(height: 8),
+
                 Text(
                   "Décrivez votre commerce pour que les clients vous trouvent facilement",
                   style: TextStyle(fontSize: 15, color: Colors.grey[600]),
@@ -266,7 +258,7 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
                       child: OutlinedButton(
                         onPressed: isLoading ? null : () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFF9A825), width: 2),
+                          side: BorderSide(color: colorScheme.primary, width: 2),
                           foregroundColor: const Color(0xFF1F0404),
                           elevation: 2,
                           padding: const EdgeInsets.symmetric(vertical: 15),
@@ -309,8 +301,8 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF9A825),
-                          foregroundColor: Colors.black87,
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: Colors.white,
                           elevation: 2,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -347,11 +339,13 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
   }
 
   Widget _buildStepIndicator(String number, bool isActive) {
+    colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+        color: isActive ? colorScheme.primary : Colors.grey[300],
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -360,7 +354,7 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: isActive ? Colors.black87 : Colors.grey[600],
+            color: isActive ? Colors.white : Colors.grey[600],
           ),
         ),
       ),
@@ -371,7 +365,7 @@ class _RegisterVendeur2State extends State<RegisterVendeur2> {
     return Container(
       width: 40,
       height: 3,
-      color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+      color: isActive ? colorScheme.primary : Colors.grey[300],
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
   }

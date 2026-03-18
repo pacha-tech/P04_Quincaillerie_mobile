@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../Exception/AppException.dart';
 import '../Exception/NoInternetConnectionException.dart';
 import '../Exception/ProductAlreadyExistsException.dart';
+import '../data/modele/ProductRecommended.dart';
 import '../data/modele/ProductSearch.dart';
 import '../data/modele/ProductStock.dart';
 
@@ -18,14 +19,14 @@ class ProductService {
       final resultat = await _dio.get('/products/search', queryParameters: {'name': query});
 
       if (resultat.statusCode == 200) {
+        print("LES RESULTAT DE LA RECHERCHE DE $query EST: $resultat");
         return (resultat.data as List)
             .map((i) => ProductSearch.fromJson(i))
             .toList();
       }
     } on DioException catch (e) {
       if (e.response == null) {
-        throw NoInternetConnectionException(
-            "Vérifiez votre connexion internet");
+        throw NoInternetConnectionException("Vérifiez votre connexion internet");
       }
 
       throw AppException("Une erreur est survenue. Réessayez plus tard.");
@@ -39,8 +40,7 @@ class ProductService {
       await _dio.post('/products/addProduct', data: addProductDTO.toJson());
     } on DioException catch (e) {
       if (e.response == null) {
-        throw NoInternetConnectionException(
-            "Vérifiez votre connexion internet");
+        throw NoInternetConnectionException("Vérifiez votre connexion internet");
       }
 
       final status = e.response!.statusCode;
@@ -96,6 +96,22 @@ class ProductService {
       if(status == 404){
         throw ProductNotFoundException(message);
       }
+    }
+  }
+
+  Future<List<ProductRecommended>> getRecommandationByProductAndStore(String idProduct , String idQuincaillerie) async {
+    try {
+      final results = await _dio.get("/products/recommendations" , queryParameters: {"idProduct":idProduct , "idQuincaillerie":idQuincaillerie});
+
+      return (results.data as List )
+          .map((item) => ProductRecommended.fromJson(item))
+          .toList();
+    }on DioException catch (e) {
+      if (e.response == null) {
+        throw NoInternetConnectionException("Vérifiez votre connexion internet");
+      }
+
+      throw AppException("Une erreur est survenue. Réessayez plus tard.");
     }
   }
 }

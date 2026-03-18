@@ -88,9 +88,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
         if (textEditingValue.text.isEmpty) return const Iterable.empty();
 
         return allProducts.where((ProductSuggestion option) {
-          return option.nom
-              .toLowerCase()
-              .contains(textEditingValue.text.toLowerCase());
+          return option.nom.toLowerCase().contains(textEditingValue.text.toLowerCase());
         });
       },
 

@@ -18,28 +18,38 @@ class SuggestionProvider extends ChangeNotifier {
     loadSuggestions();
   }
 
+
   Future<void> loadSuggestions({bool forceRefresh = false}) async {
     final now = DateTime.now();
 
-
-    if (!forceRefresh &&
-        _suggestions.isNotEmpty &&
-        _lastFetchTime != null &&
-        now.difference(_lastFetchTime!).inMinutes < 10) {
+    if (!forceRefresh && _suggestions.isNotEmpty && _lastFetchTime != null && now.difference(_lastFetchTime!).inMinutes < 10) {
       return;
     }
 
     _isLoading = true;
-    notifyListeners(); // Notifie l'UI pour afficher un loader
+    notifyListeners();
 
     try {
       final response = await _dio.get("/products/suggestions");
 
-      print(response);
 
-      _suggestions = (response.data as List)
-          .map((item) => ProductSuggestion.fromJson(item))
-          .toList();
+      final List rawList = response.data as List;
+
+
+      final Map<String, ProductSuggestion> uniqueProducts = {};
+
+      for (var item in rawList) {
+        final suggestion = ProductSuggestion.fromJson(item);
+        final String normalizedName = suggestion.nom.toLowerCase().trim();
+
+
+        if (!uniqueProducts.containsKey(normalizedName)) {
+          uniqueProducts[normalizedName] = suggestion;
+        }
+      }
+
+
+      _suggestions = uniqueProducts.values.toList();
 
       _lastFetchTime = now;
     } catch (e) {
@@ -49,6 +59,7 @@ class SuggestionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 
   void clearCache() {
     _suggestions = [];

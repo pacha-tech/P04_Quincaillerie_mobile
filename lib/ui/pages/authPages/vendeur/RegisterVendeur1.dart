@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../client/LoginPage.dart';
 import 'RegisterVendeur2.dart';
 
 class RegisterVendeur1 extends StatefulWidget {
@@ -20,6 +21,7 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
   final _emailController = TextEditingController();
   final _telephoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  late ColorScheme colorScheme;
 
 
   @override
@@ -33,12 +35,14 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
 
 
   Widget _buildStepIndicator(String number, bool isActive) {
+    colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
-        shape: BoxShape.circle,
+        color: isActive ? colorScheme.primary : Colors.grey[300],
+        shape: BoxShape.circle
       ),
       child: Center(
         child: Text(
@@ -46,7 +50,7 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: isActive ? Colors.black87 : Colors.grey[600],
+            color: isActive ? Colors.white : Colors.grey[600],
           ),
         ),
       ),
@@ -57,18 +61,20 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
     return Container(
       width: 40,
       height: 3,
-      color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+      color: isActive ? colorScheme.primary : Colors.grey[300],
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text("Devenir vendeur sur Brixel"),
-        backgroundColor: const Color(0xFF795548),
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
@@ -79,25 +85,13 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                /*
-                const Text(
-                  "Vendez sur QuincaMarket",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF4A2C1F),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 5),
-                */
 
-                const Text(
+                Text(
                   "Informations Personnelles",
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4A2C1F),
+                    color: colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(height: 35),
@@ -176,15 +170,17 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
                     labelText: "Téléphone",
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone_outlined),
-                    hintText: "+237 6XX XXX XXX",
+                    hintText: "6XX XXX XXX",
                   ),
                   keyboardType: TextInputType.phone,
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Veuillez entrer votre numéro";
+                    if (value == null || value.isEmpty) {
+                      return "veuillez entrer votre numero de telephone";
                     }
-                    if (!RegExp(r'^\+?237\s?\d{8,9}$').hasMatch(value.replaceAll(' ', ''))) {
-                      return "Format attendu : +237 6XX XXX XXX";
+
+                    final phoneRegex = RegExp(r'^6[0-9]{8}$');
+                    if (!phoneRegex.hasMatch(value)) {
+                      return "Format invalide (ex: 6XXXXXXXX)";
                     }
                     return null;
                   },
@@ -252,8 +248,8 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF9A825),
-                      foregroundColor: Colors.black87,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: Colors.white,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
@@ -278,7 +274,19 @@ class _BecomeSellerPageState extends State<RegisterVendeur1> {
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 15),
+
+                if(!isLoading)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Deja un compte ?"),
+                      TextButton(
+                        onPressed: () => Navigator.pushReplacement(context , MaterialPageRoute(builder: (context) => const LoginPage())),
+                        child: Text("Connectez vous", style: TextStyle(color: Colors.amber[800], fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

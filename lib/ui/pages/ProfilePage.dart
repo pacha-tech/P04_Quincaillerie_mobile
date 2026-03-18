@@ -190,7 +190,7 @@ class ProfilePage extends StatelessWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const RegisterPage(page: ProfilePage(), label: "Rejoindre la Quincaillerie"),
+                    builder: (context) => const RegisterPage(label: "Rejoindre la Quincaillerie"),
                   ),
                 ),
                 style: ElevatedButton.styleFrom(

@@ -12,13 +12,16 @@ class MapFull extends StatefulWidget {
 class _MapFullState extends State<MapFull> {
   LatLng? _selectedLocation;
   final LatLng _defaultCenter = LatLng(3.865, 11.520); // Yaoundé
+  late ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
+    colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Choisir la position de votre boutique"),
-        backgroundColor: const Color(0xFF795548),
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: Stack(
@@ -72,8 +75,8 @@ class _MapFullState extends State<MapFull> {
                   Navigator.pop(context, _selectedLocation);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF9A825),
-                  foregroundColor: Colors.black87,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   elevation: 6,

@@ -1,6 +1,9 @@
+import 'package:brixel/Exception/AppException.dart';
+import 'package:brixel/Exception/NoInternetConnectionException.dart';
 import 'package:flutter/material.dart';
 import 'package:brixel/service/ProductService.dart';
 import 'package:brixel/data/modele/ProductSearch.dart';
+import '../widgets/ErrorWidgets.dart';
 import 'ProductDetaiByQuincaillerielPage.dart';
 
 class SearchResultsPage extends StatefulWidget {
@@ -15,140 +18,358 @@ class SearchResultsPage extends StatefulWidget {
   State<SearchResultsPage> createState() => _SearchResultsPageState();
 }
 
-class _SearchResultsPageState extends State<SearchResultsPage> {
+class _SearchResultsPageState extends State<SearchResultsPage> with SingleTickerProviderStateMixin {
   final ProductService _productService = ProductService();
+  late ColorScheme colorScheme;
+  late AnimationController _shimmerController;
 
   List<ProductSearch> _results = [];
   bool _isLoading = true;
   String? _errorMessage;
-
+  IconData _icon = Icons.error_outline_rounded;
   String _activeFilter = "Prix croissant";
 
   @override
   void initState() {
     super.initState();
+    _shimmerController = AnimationController.unbounded(vsync: this)..repeat(min: -0.5, max: 1.5, period: const Duration(milliseconds: 1000));
     _performSearch(widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
   }
 
   Future<void> _performSearch(String query) async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
+
+      //await Future.delayed(Duration(seconds: 15));
+
       final results = await _productService.searchProduct(query);
+
+      // LOGIQUE DE FUSION : Regrouper par nom de produit identique
+      final Map<String, ProductSearch> mergedProducts = {};
+
+      for (var product in results) {
+        if (mergedProducts.containsKey(product.name)) {
+          // Si le produit existe déjà, on ajoute ses prix à la liste existante
+          mergedProducts[product.name]!.prices.addAll(product.prices);
+        } else {
+          // Sinon on crée une nouvelle entrée
+          mergedProducts[product.name] = product;
+        }
+      }
+
       setState(() {
-        _results = results;
+        _results = mergedProducts.values.toList();
         _isLoading = false;
+      });
+    } on NoInternetConnectionException catch(e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+        _icon = Icons.wifi_off_outlined;
+      });
+    } on AppException catch(e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = e.toString().contains("NoInternetConnectionException")
-            ? "Pas de connexion internet"
-            : "Erreur lors de la recherche : $e";
+        _errorMessage = "Erreur interne";
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F9),
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Text('Résultats pour ', style: TextStyle(fontSize: 14, color: Colors.grey)),
-            Text('"${widget.searchQuery}"', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0.5,
-      ),
-      body: _isLoading
-          ? const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Colors.blue),
-            SizedBox(height: 16),
-            Text("Recherche en cours...", style: TextStyle(fontSize: 16, color: Colors.grey)),
-          ],
-        ),
-      )
-          : _errorMessage != null
-          ? Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 80, color: Colors.redAccent),
-              const SizedBox(height: 16),
-              Text("Erreur", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(_errorMessage!, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey)),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => _performSearch(widget.searchQuery),
-                icon: const Icon(Icons.refresh),
-                label: const Text("Réessayer"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+      backgroundColor: colorScheme.surface,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 80.0,
+            floating: true,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: Colors.white,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 56, bottom: 14),
+              title: Text(
+                widget.searchQuery,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-            ],
+              centerTitle: true,
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [colorScheme.primary, colorScheme.secondary],
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      )
-          : _results.isEmpty
-          ? _buildEmptyState()
-          : _buildResultsList(),
+          SliverToBoxAdapter(child: _isLoading ? const SizedBox.shrink() : _buildFilterBar()),
+          if (_isLoading)
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildSkeletonCard(),
+                childCount: 7,
+              ),
+            )
+          else if (_errorMessage != null)
+            SliverFillRemaining(child: ErrorWidgets(message: _errorMessage , iconData: _icon, onRetry: () {_performSearch(widget.searchQuery);},))
+          else if (_results.isEmpty)
+              SliverFillRemaining(child: _buildEmptyState())
+            else
+              SliverPadding(
+                padding: const EdgeInsets.only(bottom: 20),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                      final sortedResults = _getSortedResults();
+                      return _buildProductCard(sortedResults[index]);
+                    },
+                    childCount: _results.length,
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  List<ProductSearch> _getSortedResults() {
+    List<ProductSearch> sorted = List.from(_results);
+
+    // Tri des quincailleries à l'intérieur de chaque carte produit
+    for (var product in sorted) {
+      product.prices.sort((a, b) {
+        if (_activeFilter == "Prix croissant") return a.price.compareTo(b.price);
+        if (_activeFilter == "Prix décroissant") return b.price.compareTo(a.price);
+        return 0;
+      });
+    }
+
+    // Tri des cartes produits entre elles (basé sur le prix le plus bas dispo)
+    sorted.sort((a, b) {
+      double minA = a.prices.isNotEmpty ? a.prices.first.price.toDouble() : double.infinity;
+      double minB = b.prices.isNotEmpty ? b.prices.first.price.toDouble() : double.infinity;
+      if (_activeFilter == "Prix croissant") return minA.compareTo(minB);
+      if (_activeFilter == "Prix décroissant") return minB.compareTo(minA);
+      return 0;
+    });
+    return sorted;
+  }
+
+  Widget _buildSkeletonCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        children: [
+          _skeletonBox(50, 50),
+          const SizedBox(width: 12),
+          Expanded(child: _skeletonBox(14, double.infinity)),
+        ],
+      ),
+    );
+  }
+
+  Widget _skeletonBox(double height, double width) {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          height: height,
+          width: width,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Colors.grey[200]!, Colors.grey[100]!, Colors.grey[200]!],
+              stops: [0.0, _shimmerController.value, 1.0],
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildFilterBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      child: SingleChildScrollView(
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView(
         scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildFilterChip("Prix croissant", Icons.arrow_upward),
-            const SizedBox(width: 8),
-            _buildFilterChip("Prix décroissant", Icons.arrow_downward),
-            const SizedBox(width: 8),
-            _buildFilterChip("Plus proche", Icons.near_me_outlined),
-            const SizedBox(width: 8),
-            _buildFilterChip("Mieux noté", Icons.star_border),
-            const SizedBox(width: 8),
-            _buildFilterChip("Services", Icons.filter_list),
-          ],
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _filterChip("Prix croissant", Icons.trending_up),
+          _filterChip("Prix décroissant", Icons.trending_down),
+          _filterChip("Plus proche", Icons.near_me_outlined),
+        ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, IconData icon) {
+  Widget _filterChip(String label, IconData icon) {
     bool isActive = _activeFilter == label;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label, style: TextStyle(fontSize: 12, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
+        selected: isActive,
+        onSelected: (val) => setState(() => _activeFilter = label),
+        avatar: Icon(icon, size: 14, color: isActive ? Colors.white : Colors.grey[600]),
+        backgroundColor: Colors.white,
+        selectedColor: colorScheme.primary,
+        checkmarkColor: Colors.white,
+        labelStyle: TextStyle(color: isActive ? Colors.white : Colors.black87),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey[200]!)),
+      ),
+    );
+  }
 
-    return ActionChip(
-      avatar: Icon(icon, size: 18, color: isActive ? Colors.white : Colors.grey.shade700),
-      label: Text(label),
-      labelStyle: TextStyle(
-        color: isActive ? Colors.white : Colors.black87,
-        fontWeight: FontWeight.w500,
-      ),
-      backgroundColor: isActive ? Colors.blue : Colors.grey.shade200,
-      shape: RoundedRectangleBorder(
+  Widget _buildProductCard(ProductSearch product) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        side: isActive ? BorderSide.none : BorderSide(color: Colors.grey.shade300),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
-      onPressed: () {
-        setState(() {
-          _activeFilter = label;
-        });
-      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header Produit
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.inventory_2_outlined, color: colorScheme.primary, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: -0.4),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        "${product.prices.length} point${product.prices.length > 1 ? 's' : ''} de vente disponible${product.prices.length > 1 ? 's' : ''}",
+                        style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 0.5),
+          // Liste des quincailleries
+          ListView.separated(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: product.prices.length,
+            separatorBuilder: (context, index) => const Divider(height: 1, indent: 68, thickness: 0.5),
+            itemBuilder: (context, index) => _storeTile(product.prices[index], product),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _storeTile(var p, ProductSearch product) {
+    return InkWell(
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => QuincaillerieDetailsPage(quincaillerieId: p.idQuincaillerie, product: product))
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade100)
+              ),
+              child: Icon(Icons.image, color: colorScheme.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    p.quincaillerieName,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF2D3436)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.star_rounded, size: 12, color: Colors.orange.shade700),
+                      const SizedBox(width: 2),
+                      Text("4.5", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                      const SizedBox(width: 8),
+                      Icon(Icons.location_on_outlined, size: 11, color: Colors.blueGrey.shade400),
+                      const SizedBox(width: 2),
+                      Text("2.4 km", style: TextStyle(color: Colors.blueGrey.shade600, fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  "${p.price}",
+                  style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w800, fontSize: 13),
+                ),
+                Text(
+                  "Fcfa",
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 9),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -157,197 +378,12 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 80, color: Colors.grey[400]),
+          Icon(Icons.search_off_rounded, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          Text("Aucun produit trouvé pour '${widget.searchQuery}'",
-              style: const TextStyle(fontSize: 18, color: Colors.grey)),
-          const SizedBox(height: 8),
-          Text("Essayez avec d'autres mots-clés ou vérifiez l'orthographe",
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const Text("Aucun résultat", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildResultsList() {
-    List<ProductSearch> sortedResults = List.from(_results);
-
-    sortedResults.sort((a, b) {
-      double minA = a.prices.isNotEmpty ? a.prices.map((p) => p.price.toDouble()).reduce((c, n) => c < n ? c : n) : double.infinity;
-      double minB = b.prices.isNotEmpty ? b.prices.map((p) => p.price.toDouble()).reduce((c, n) => c < n ? c : n) : double.infinity;
-
-      if (_activeFilter == "Prix croissant") {
-        return minA.compareTo(minB);
-      } else if (_activeFilter == "Prix décroissant") {
-        return minB.compareTo(minA);
-      }
-      return 0;
-    });
-
-    return Column(
-      children: [
-        _buildFilterBar(),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: sortedResults.length,
-            itemBuilder: (context, index) {
-              final product = sortedResults[index];
-              final bool hasPrices = product.prices.isNotEmpty;
-
-              double? minPrice = hasPrices
-                  ? product.prices.map((p) => p.price.toDouble()).reduce((a, b) => a < b ? a : b)
-                  : null;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 15),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.grey.shade300),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.image, color: Colors.grey),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(product.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                    const Icon(Icons.favorite_border, size: 22, color: Colors.redAccent),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(product.description ?? "Aucune description",
-                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      hasPrices ? "${minPrice!.toInt()} FCFA" : "Prix non disponible",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: hasPrices ? Colors.blue[800] : Colors.red,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.blue.shade100),
-                                        borderRadius: BorderRadius.circular(20),
-                                        color: Colors.blue.shade50.withOpacity(0.3),
-                                      ),
-                                      child: Text("${product.prices.length} magasins",
-                                          style: TextStyle(fontSize: 11, color: Colors.blue.shade700, fontWeight: FontWeight.w600)),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        child: Divider(height: 1, thickness: 1, color: Colors.grey),
-                      ),
-                      _buildStoreList(product, hasPrices),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStoreList(ProductSearch product, bool hasPrices) {
-    if (!hasPrices) {
-      return const Text("Aucune quincaillerie disponible",
-          style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey, fontSize: 13));
-    }
-    return Column(
-      children: product.prices.asMap().entries.map((entry) {
-        int idx = entry.key;
-        var p = entry.value;
-        bool isLast = idx == product.prices.length - 1;
-
-        return Container(
-          decoration: BoxDecoration(
-            border: isLast ? null : Border(bottom: BorderSide(color: Colors.grey.shade300, width: 0.3)),
-          ),
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => QuincaillerieDetailsPage(quincaillerieId: p.idQuincaillerie, product: product),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.quincaillerieName,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: const [
-                            Icon(Icons.location_on, size: 12, color: Colors.black),
-                            SizedBox(width: 2),
-                            Text("...Km", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text("${p.price}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const Text("FCFA", style: TextStyle(fontSize: 9, color: Colors.grey)),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.near_me_outlined, color: Colors.blue, size: 20),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
 }

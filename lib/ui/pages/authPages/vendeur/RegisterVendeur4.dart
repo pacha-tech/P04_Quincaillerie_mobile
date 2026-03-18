@@ -2,6 +2,8 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:brixel/data/dto/user/RegisterSellerDTO.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../Exception/AppException.dart';
+import '../../../../Exception/NoInternetConnectionException.dart';
 import '../../../../provider/UserProvider.dart';
 import '../../../../service/UserService.dart';
 import '../../../widgets/MainNavigation.dart';
@@ -53,7 +55,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
   final UserService _userService = UserService();
 
   bool _isLoading = false;
-
+  late ColorScheme colorScheme;
   bool _acceptTerms = false;
   bool _wantTips = false;
 
@@ -94,11 +96,14 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
       region: widget.region,
       ville: widget.ville,
       quartier: widget.quartier,
-      photoStoreUrl: "",
+      photoUrl: "",
       precision: widget.precision,
       description: widget.description,
       latitude: widget.latitude,
       longitude: widget.longitude,
+      nui: _nuiController.text,
+      acceptsTerms: _acceptTerms,
+      wantTips: _wantTips,
     );
 
 
@@ -129,29 +134,51 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
          dismissOnTouchOutside: false,
          dismissOnBackKeyPress: false,
        ).show();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Erreur lors de l'inscription : $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+
+    }on NoInternetConnectionException catch (e) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        title: 'Erreur',
+        desc: e.message,
+        btnOkText: "Ok",
+        btnOkColor: Colors.green,
+        btnOkOnPress: () {
+
+        },
+      ).show();
+
+    } on AppException catch (e){
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        title: 'Erreur interne',
+        desc: e.message,
+        btnOkColor: Colors.red,
+      ).show();
+
+    } catch(e) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        title: 'Erreur',
+        desc: "Une Erreur c'est produite",
+        btnOkColor: Colors.red,
+      ).show();
+    }
+    finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text("Devenir vendeur sur Brixel"),
-        backgroundColor: const Color(0xFF795548),
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
@@ -164,12 +191,12 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       "Document & Validation",
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4A2C1F),
+                        color: colorScheme.secondary,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -192,7 +219,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
 
                     Text(
                       "Dernière étape avant validation",
-                      style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 15, color: Colors.black),
                     ),
                     const SizedBox(height: 40),
 
@@ -223,7 +250,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
                         style: TextStyle(fontSize: 12, color: Colors.red),
                       ),
                       controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: const Color(0xFFF9A825),
+                      activeColor: colorScheme.primary,
                       contentPadding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 12),
@@ -236,7 +263,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
                         style: TextStyle(fontSize: 15),
                       ),
                       controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: const Color(0xFFF9A825),
+                      activeColor: colorScheme.primary,
                       contentPadding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 48),
@@ -249,7 +276,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
                             onPressed: _isLoading ? null : () => Navigator.pop(context),
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(
-                                color: _isLoading ? Colors.grey : const Color(0xFFF9A825),
+                                color: _isLoading ? Colors.grey : colorScheme.primary,
                                 width: 2,
                               ),
                               foregroundColor: _isLoading ? Colors.grey : const Color(0xFF1F0404),
@@ -264,8 +291,8 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
                           child: ElevatedButton(
                             onPressed: (_isLoading || !_acceptTerms) ? null : _submit,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF9A825),
-                              foregroundColor: Colors.black87,
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: Colors.white,
                               disabledBackgroundColor: const Color(0xFFFBF5DE),
                               disabledForegroundColor: Colors.black54,
                               padding: const EdgeInsets.symmetric(vertical: 15),
@@ -306,7 +333,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+        color: isActive ? colorScheme.primary : Colors.grey[300],
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -315,7 +342,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: isActive ? Colors.black87 : Colors.grey[600],
+            color: isActive ? Colors.white : Colors.grey[600],
           ),
         ),
       ),
@@ -326,7 +353,7 @@ class _RegisterVendeur4State extends State<RegisterVendeur4> {
     return Container(
       width: 40,
       height: 3,
-      color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+      color: isActive ? colorScheme.primary : Colors.grey[300],
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
   }

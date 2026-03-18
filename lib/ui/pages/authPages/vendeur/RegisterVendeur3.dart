@@ -40,10 +40,10 @@ class RegisterVendeur3 extends StatefulWidget {
 
 class _RegisterVendeur3State extends State<RegisterVendeur3> {
   LatLng? _selectedLocation;
-  bool _isLoadingLocation = false;   // Loading pour GPS
-  bool _isLoading = false;           // Loading global (pour Continuer)
+  bool _isLoadingLocation = false;
+  bool _isLoading = false;
 
-  // Centre par défaut : Yaoundé
+  late ColorScheme colorScheme;
   final LatLng _defaultCenter = LatLng(3.865, 11.520);
 
   Future<void> _getCurrentLocation() async {
@@ -95,11 +95,12 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
 
   @override
   Widget build(BuildContext context) {
+    colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text("Devenir vendeur sur Brixel"),
-        backgroundColor: const Color(0xFF795548),
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
@@ -110,12 +111,12 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     "Position de votre magasin",
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF4A2C1F),
+                      color: colorScheme.secondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -143,7 +144,7 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
 
                   const SizedBox(height: 24),
 
-                  // Bouton Ma position actuelle
+
                   ElevatedButton.icon(
                     icon: _isLoadingLocation
                         ? const SizedBox(
@@ -154,9 +155,9 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
                         : const Icon(Icons.my_location),
                     label: Text(_isLoadingLocation ? "Récupération..." : "Ma position actuelle"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF9A825),
-                      foregroundColor: Colors.black87,
-                      disabledBackgroundColor: const Color(0xFFFBF5DE),
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.blueGrey,
                     ),
                     onPressed: (_isLoadingLocation || _isLoading) ? null : _getCurrentLocation,
                   ),
@@ -170,8 +171,8 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
                     icon: const Icon(Icons.map),
                     label: const Text("Voir la carte"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF9A825),
-                      foregroundColor: Colors.black87,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                       disabledBackgroundColor: const Color(0xFFFBF5DE),
                     ),
@@ -218,7 +219,7 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
                           onPressed: _isLoading ? null : () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: _isLoading ? Colors.grey : const Color(0xFFF9A825),
+                              color: _isLoading ? Colors.grey : colorScheme.primary,
                               width: 2,
                             ),
                             foregroundColor: _isLoading ? Colors.grey : const Color(0xFF1F0404),
@@ -271,8 +272,8 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF9A825),
-                            foregroundColor: Colors.black87,
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: Colors.white,
                             disabledBackgroundColor: const Color(0xFFFBF5DE),
                             disabledForegroundColor: Colors.black54,
                             padding: const EdgeInsets.symmetric(vertical: 15),
@@ -304,11 +305,12 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
   }
 
   Widget _buildStepIndicator(String number, bool isActive) {
+    colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+        color: isActive ? colorScheme.primary : Colors.grey[300],
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -317,7 +319,7 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: isActive ? Colors.black87 : Colors.grey[600],
+            color: isActive ? Colors.white : Colors.grey[600],
           ),
         ),
       ),
@@ -328,7 +330,7 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
     return Container(
       width: 40,
       height: 3,
-      color: isActive ? const Color(0xFFF9A825) : Colors.grey[300],
+      color: isActive ? colorScheme.primary : Colors.grey[300],
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
   }

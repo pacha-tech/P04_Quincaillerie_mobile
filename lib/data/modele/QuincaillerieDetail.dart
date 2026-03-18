@@ -5,8 +5,8 @@ class QuincaillerieDetail {
   final String name;
   final String ville;
   final String quartier;
-  final String? telephone;
-  final Decimal? averageRating;
+  final String telephone;
+  final Decimal averageRating;
   final String status;
 
   QuincaillerieDetail({required this.name, required this.ville, required this.quartier, required this.telephone, required this.averageRating, required this.status});
@@ -17,7 +17,7 @@ class QuincaillerieDetail {
       ville: json['ville'],
       quartier: json['quartier'],
       telephone: json['telephone'],
-      averageRating: json['averageRating']??= Decimal.zero,
+      averageRating: Decimal.parse(json['averageRating']?.toString() ?? '0'),
       status: json['status'],
     );
   }

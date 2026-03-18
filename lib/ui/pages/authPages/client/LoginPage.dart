@@ -197,7 +197,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const Text("Nouveau ici ?"),
                   TextButton(
-                    onPressed: () => Navigator.pushReplacement(context , MaterialPageRoute(builder: (context) => const RegisterPage(page: HomePage(), label: "Rejoinez notre AmrketPlace pour les produits de quincaillerie"))),
+                    onPressed: () => Navigator.pushReplacement(context , MaterialPageRoute(builder: (context) => const RegisterPage(label: "Rejoinez notre AmrketPlace pour les produits de quincaillerie"))),
                     child: Text("Créer un compte", style: TextStyle(color: Colors.amber[800], fontWeight: FontWeight.bold)),
                   ),
                 ],

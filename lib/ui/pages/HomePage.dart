@@ -1,4 +1,6 @@
+import 'package:brixel/ui/pages/CartOverviewPage.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../provider/UserProvider.dart';
 import '../widgets/FooterHomePage.dart';
@@ -8,7 +10,6 @@ import '../widgets/CategoryWidget.dart';
 import '../widgets/SearchBarWidget.dart';
 import 'SearchResultPage.dart';
 import 'AllCategoryPage.dart';
-import 'PanierPage.dart';
 import 'ProfilePage.dart';
 import 'notifications_page.dart';
 import 'CatalogPage.dart';
@@ -24,6 +25,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   late ColorScheme colorScheme;
+  final String _boxName = 'productBox';
+
 
   bool _hasSearched = false;
   bool _isSearching = false;
@@ -89,26 +92,20 @@ class _HomePageState extends State<HomePage> {
                 ),
                 if (!_isSearching) ...[
                   _buildAppBarIcon(
-                    Icons.person,
+                    Icons.person_outline,
                         () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ProfilePage()),
                     ),
                   ),
                   _buildAppBarIcon(
-                    Icons.notifications,
+                    Icons.notifications_outlined,
                         () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const NotificationsPage()),
                     ),
                   ),
-                  _buildAppBarIcon(
-                    Icons.shopping_cart,
-                        () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CartPage()),
-                    ),
-                  ),
+                  _buildCartBadge(),
                 ],
               ],
             ),
@@ -324,6 +321,51 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(color: isPromo ? Colors.red : Colors.green, fontWeight: FontWeight.bold),
         ),
       ),
+    );
+  }
+
+  Widget _buildCartBadge() {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box(_boxName).listenable(),
+      builder: (context, Box box, _) {
+        // Calcul du nombre de quincailleries différentes
+        final storeIds = box.values.map((item) => item['idQuincaillerie']).toSet();
+        final int count = storeIds.length;
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CartOverviewPage())
+                );
+              },
+            ),
+            if (count > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colorScheme.primary, width: 1.5),
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

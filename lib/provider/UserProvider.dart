@@ -1,9 +1,8 @@
-
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-
+import '../hive/CartService.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -15,29 +14,43 @@ class UserProvider extends ChangeNotifier {
   User? _currentUser;
 
 
-  String? get role => _role;
-  String? get quincaillerieId => _quincaillerieId;
-  String? get token => _token;
-  AuthStatus get status => _status;
-  bool get isAuthenticated => _status == AuthStatus.authenticated;
-  bool get isUnauthenticated => _status == AuthStatus.unauthenticated;
-  bool get isUnknown => _status == AuthStatus.unknown;
-  User? get currentUser => _currentUser;
+  static const String _userBoxName  = 'userBox';
+  static const String _keyRole      = 'user_role';
+  static const String _keyQuincId   = 'user_quincaillerie_id';
+
+
+  String? get role             => _role;
+  String? get quincaillerieId  => _quincaillerieId;
+  String? get token            => _token;
+  AuthStatus get status        => _status;
+  bool get isAuthenticated     => _status == AuthStatus.authenticated;
+  bool get isUnauthenticated   => _status == AuthStatus.unauthenticated;
+  bool get isUnknown           => _status == AuthStatus.unknown;
+  User? get currentUser        => _currentUser;
 
   UserProvider() {
     _listenToAuthChanges();
   }
 
+
+  Box get _userBox => Hive.box(_userBoxName);
+
   void _listenToAuthChanges() {
     FirebaseAuth.instance.authStateChanges().listen((User? user) async {
       _currentUser = user;
+
       if (user == null) {
-        _role = null;
+
+        _role            = null;
         _quincaillerieId = null;
-        _token = null;
-        _status = AuthStatus.unauthenticated;
+        _token           = null;
+        _status          = AuthStatus.unauthenticated;
+
+        await _clearLocalSession();
+
         notifyListeners();
       } else {
+
         _status = AuthStatus.authenticated;
         await _loadUserClaims(user);
       }
@@ -47,7 +60,7 @@ class UserProvider extends ChangeNotifier {
   Future<void> _loadUserClaims(User user) async {
     try {
 
-      final idTokenResult = await user.getIdTokenResult(true);
+      final idTokenResult = await user.getIdTokenResult(false);
 
       _token = idTokenResult.token;
 
@@ -58,28 +71,51 @@ class UserProvider extends ChangeNotifier {
         _role = roleData?.toString();
       }
 
-
       _quincaillerieId = idTokenResult.claims?['quincaillerieId']?.toString();
 
-      debugPrint("Claims chargés : Rôle=$_role, Quincaillerie=$_quincaillerieId");
+      await _saveLocalSession();
+
+      debugPrint("Claims chargés depuis Firebase : Rôle=$_role, Quincaillerie=$_quincaillerieId");
     } catch (e) {
-      debugPrint("Erreur lecture claims : $e");
-      //_role = 'CLIENT';
+
+      debugPrint("Erreur lecture claims Firebase : $e — lecture depuis Hive");
+
+      _role            = _userBox.get(_keyRole);
+      _quincaillerieId = _userBox.get(_keyQuincId);
+      _token           = null;
+
+      debugPrint("Claims chargés depuis Hive : Rôle=$_role, Quincaillerie=$_quincaillerieId");
     } finally {
       notifyListeners();
     }
   }
 
+
+  Future<void> _saveLocalSession() async {
+    await _userBox.put(_keyRole, _role);
+    if(_role == "VENDEUR"){
+      await _userBox.put(_keyQuincId, _quincaillerieId);
+    }
+  }
+
+
+  Future<void> _clearLocalSession() async {
+    await _userBox.delete(_keyRole);
+    await _userBox.delete(_keyQuincId);
+
+
+    final CartService cartService = CartService();
+    await cartService.clearCart();
+  }
+
+
   Future<void> refreshClaimsAfterLogin() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        // Force un refresh du token + claims (le true est important)
-        final idTokenResult = await user.getIdTokenResult(true);
 
-        // Recharge les claims
+        await user.getIdTokenResult(true);
         await _loadUserClaims(user);
-
         debugPrint("Claims rafraîchis après login : rôle = $_role");
       } catch (e) {
         debugPrint("Erreur refresh claims après login : $e");

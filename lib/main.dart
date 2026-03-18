@@ -1,9 +1,11 @@
+import 'package:brixel/data/modele/Cart.dart';
 import 'package:brixel/provider/SuggestionProvider.dart';
 import 'package:brixel/ui/theme/AppTheme.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
+import 'hive/CartService.dart';
 import 'provider/UserProvider.dart';
 import 'ui/widgets/MainNavigation.dart';
 
@@ -18,6 +20,7 @@ Future<void> main() async {
     debugPrint("Erreur Firebase init: $e");
   }
 
+  await CartService.init();
   runApp(const MyApp());
 }
 

@@ -2,6 +2,7 @@
 import 'package:decimal/decimal.dart';
 
 class Price {
+  final String idPrice;
   final double price;
   final int stock;
   final String? promotion;
@@ -9,10 +10,11 @@ class Price {
   final String idQuincaillerie;
 
 
-  Price({required this.price, required this.stock, this.promotion, required this.quincaillerieName , required this.idQuincaillerie});
+  Price({required this.idPrice , required this.price, required this.stock, this.promotion, required this.quincaillerieName , required this.idQuincaillerie});
 
   factory Price.fromJson(Map<String, dynamic> json) {
     return Price(
+      idPrice: json['idPrice'],
       price: json['price'],
       stock: json['stock'],
       promotion: json['promotionRating']??"",
