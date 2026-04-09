@@ -7,9 +7,11 @@ class ProductSearch {
   final String name;
   final String unite;
   final String? description;
+  final String imageUrl;
   final List<Price> prices;
 
-  ProductSearch({required this.idProduct , required this.idCategory , required this.name, required this.unite , required this.description, required this.prices});
+
+  ProductSearch({required this.idProduct , required this.idCategory , required this.name, required this.unite , required this.description, required this.imageUrl, required this.prices});
 
   factory ProductSearch.fromJson(Map<String, dynamic> json) {
     var list = json['priceSearchProductsDTO'] as List;
@@ -21,6 +23,7 @@ class ProductSearch {
       name: json['name'],
       unite: json['unite'],
       description: json['description'],
+      imageUrl: json['imageUrl'],
       prices: priceList,
     );
   }

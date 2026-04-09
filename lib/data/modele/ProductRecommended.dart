@@ -7,8 +7,13 @@ class ProductRecommended {
   final int stock;
   final int score;
   final String unite;
+  final double pricePromo;
+  final bool inPromo;
+  final String imageUrl;
+  final String taux;
 
-  ProductRecommended({required this.idPrice , required this.name , required this.price , required this.description , required this.stock , required this.score , required this.unite});
+  ProductRecommended({required this.idPrice , required this.name , required this.price , required this.description , required this.stock , required this.score , required this.unite , required this.pricePromo , required this.inPromo , required this.imageUrl , required this.taux});
+
 
   factory ProductRecommended.fromJson(Map<String , dynamic> json){
     return ProductRecommended (
@@ -18,7 +23,11 @@ class ProductRecommended {
       description: json['description'],
       stock: json['stock'],
       score: json['score'],
-      unite: json['unite']!
+      unite: json['unite']!,
+      pricePromo: json['pricePromo'],
+      inPromo: json['inPromo'],
+      imageUrl: json['imageUrl'],
+      taux: json['taux'],
     );
   }
 }

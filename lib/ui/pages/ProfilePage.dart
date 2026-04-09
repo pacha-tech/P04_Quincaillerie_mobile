@@ -1,19 +1,24 @@
+import 'package:brixel/Exception/NoInternetConnectionException.dart';
 import 'package:brixel/service/UserService.dart';
+import 'package:brixel/ui/widgets/ErrorWidgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../provider/UserProvider.dart';
+import '../../Exception/AppException.dart';
 import '../../data/modele/UserInfos.dart';
 import '../widgets/MainNavigation.dart';
 import 'authPages/client/RegisterPage.dart';
 
 class ProfilePage extends StatelessWidget {
   static final UserService _userService = UserService();
-
   const ProfilePage({super.key});
+
 
   @override
   Widget build(BuildContext context) {
+    ColorScheme colorScheme = Theme.of(context).colorScheme;
+
     final userProvider = context.watch<UserProvider>();
 
 
@@ -22,10 +27,7 @@ class ProfilePage extends StatelessWidget {
     }
 
 
-    if (!userProvider.isAuthenticated ||
-        userProvider.currentUser == null ||
-        userProvider.role == null ||
-        userProvider.role!.isEmpty) {
+    if (!userProvider.isAuthenticated || userProvider.currentUser == null || userProvider.role == null || userProvider.role!.isEmpty) {
       return _buildGuestView(context);
     }
 
@@ -33,20 +35,53 @@ class ProfilePage extends StatelessWidget {
     final String role = userProvider.role!;
 
     return FutureBuilder<UserInfos?>(
-      future: _userService.getUserInfo(),
+      future: /*Future.delayed(Duration(seconds: 5)),*/
+      _userService.getUserInfo(),
       builder: (context, apiSnapshot) {
         if (apiSnapshot.connectionState == ConnectionState.waiting) {
-          return _buildProfileView(
-            context,
-            firebaseUser,
-            null,
-            role,
-            isLoading: true,
+          return _buildProfileView(context, firebaseUser, null, role, isLoading: true,
           );
         }
 
         if (apiSnapshot.hasError || apiSnapshot.data == null) {
-          return _buildErrorView(context, firebaseUser);
+          final error = apiSnapshot.error;
+          if(error is NoInternetConnectionException ){
+            return Scaffold(
+                backgroundColor: colorScheme.surface,
+              appBar: AppBar(
+                title: const Text('Mon Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+                centerTitle: true,
+                elevation: 0,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+              ),
+                body: ErrorWidgets(message: error.message, iconData: Icons.wifi_off, onRetry: () async { await _userService.getUserInfo();})
+            );
+          } else if(error is AppException){
+            return Scaffold(
+                backgroundColor: colorScheme.surface,
+              appBar: AppBar(
+                title: const Text('Mon Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+                centerTitle: true,
+                elevation: 0,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+              ),
+                body: ErrorWidgets(message: error.message, iconData: Icons.error_outline_rounded, onRetry: () async {await _userService.getUserInfo();})
+            );
+          } else {
+            return Scaffold(
+                backgroundColor: colorScheme.surface,
+                appBar: AppBar(
+                  title: const Text('Mon Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+                  centerTitle: true,
+                  elevation: 0,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                ),
+                body: ErrorWidgets(message: "Erreur interne", iconData: Icons.error_outline_rounded, onRetry: () async {await _userService.getUserInfo();})
+            );
+          }
         }
 
         final mySqlUser = apiSnapshot.data!;
@@ -56,14 +91,11 @@ class ProfilePage extends StatelessWidget {
   }
 
 
-  Widget _buildProfileView(
-      BuildContext context,
-      User firebaseUser,
-      UserInfos? mySqlUser,
+  Widget _buildProfileView(BuildContext context, User firebaseUser, UserInfos? mySqlUser,
       String role, {
         bool isLoading = false,
       }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -222,21 +254,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorView(BuildContext context, User firebaseUser) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Erreur")),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const Text("Impossible de charger les infos"),
-            TextButton(onPressed: () => (context as Element).markNeedsBuild(), child: const Text("Réessayer")),
-          ],
-        ),
-      ),
-    );
-  }
 
 
   Widget _buildAvatarSection() {

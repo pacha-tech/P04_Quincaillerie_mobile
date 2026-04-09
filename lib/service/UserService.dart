@@ -79,8 +79,18 @@ class UserService {
   }
 
   Future<UserInfos?> getUserInfo() async {
+    try{
       final response = await _dio.get('/users/profile');
       return UserInfos.fromJson(response.data);
+    } on DioException catch(e){
+      if(e.response == null ){
+        throw NoInternetConnectionException("Vérifiez votre connexion internet");
+      }
+
+      throw AppException("Une erreur est survenue.");
+
+    }
+
   }
 }
 

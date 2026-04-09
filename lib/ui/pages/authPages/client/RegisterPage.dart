@@ -175,7 +175,7 @@ class _RegisterScreenState extends State<RegisterPage> {
                   elevation: 2,
                 ),
                 onPressed: _isLoading ? null : () async {
-                  // Déclenchement de la validation
+
                   if (!_formKey.currentState!.validate()) return;
 
                   setState(() => _isLoading = true);

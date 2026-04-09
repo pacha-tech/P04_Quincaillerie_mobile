@@ -1,7 +1,15 @@
+
 import 'package:brixel/ui/pages/ProfilePage.dart';
 import 'package:brixel/ui/pages/pageVendeur/AddProductPage.dart';
+import 'package:brixel/ui/pages/pageVendeur/ProfileQuincailleriePage.dart';
+import 'package:brixel/ui/pages/pageVendeur/PromotionPage.dart';
 import 'package:brixel/ui/pages/pageVendeur/UpdateStockPage.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../provider/UserProvider.dart';
+import '../../widgets/MainNavigation.dart';
+
 
 class DashboardVendeur extends StatelessWidget {
   const DashboardVendeur({super.key});
@@ -12,19 +20,19 @@ class DashboardVendeur extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface, // On utilise la surface du thème
+      backgroundColor: colorScheme.surface,
       drawer: _buildModernDrawer(context),
       body: CustomScrollView(
         slivers: [
-          // --- APP BAR AVEC TES COULEURS ---
           SliverAppBar(
-            expandedHeight: 160,
+            expandedHeight: 60,
             pinned: true,
             elevation: 0,
             backgroundColor: colorScheme.primary,
             foregroundColor: colorScheme.onPrimary,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+              centerTitle: true,
               title: Text(
                 "Dashboard Vendeur",
                 style: TextStyle(
@@ -46,11 +54,10 @@ class DashboardVendeur extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    // Petit motif décoratif en fond
                     Positioned(
-                      right: -20,
-                      top: -20,
-                      child: Icon(Icons.store, size: 150, color: colorScheme.onPrimary.withOpacity(0.1)),
+                      right: 100,
+                      top: -15,
+                      child: Icon(Icons.store, size: 75, color: colorScheme.onPrimary.withOpacity(0.1)),
                     ),
                   ],
                 ),
@@ -252,6 +259,8 @@ class DashboardVendeur extends StatelessWidget {
   Widget _buildModernDrawer(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Drawer(
+      backgroundColor: colorScheme.surface,
+      width: 250,
       child: Column(
         children: [
           UserAccountsDrawerHeader(
@@ -260,29 +269,53 @@ class DashboardVendeur extends StatelessWidget {
             accountEmail: const Text("quincaillerie.armel@brixel.com"),
             currentAccountPicture: const CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.store, color: Color(0xFFF9A825)),
+              child: Icon(Icons.store, color: Color(0xFFF9A825) , size: 40),
             ),
           ),
           ListTile(
-            leading: Icon(Icons.dashboard_outlined, color: colorScheme.primary),
-            title: const Text("Dashboard"),
-            onTap: () => Navigator.pop(context),
+            leading: const Icon(Icons.local_offer),
+            title: const Text("Promotions"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PromotionPage()),
+              );
+            },
           ),
           ListTile(
-            leading: const Icon(Icons.inventory_2_outlined),
-            title: const Text("Produits"),
-            onTap: () {},
+            leading: Icon(Icons.store, color: colorScheme.primary),
+            title: const Text("Boutique"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ProfileQuincailleriePage()),
+              );
+            }
           ),
           const Spacer(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text("Déconnexion", style: TextStyle(color: Colors.red)),
-            onTap: () {},
+            onTap: () {
+              _handleSignOut(context);
+            },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
         ],
+
       ),
     );
+  }
+
+  void _handleSignOut(BuildContext context) async {
+    await context.read<UserProvider>().signOut();
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainNavigation()),
+            (route) => false,
+      );
+    }
   }
 }

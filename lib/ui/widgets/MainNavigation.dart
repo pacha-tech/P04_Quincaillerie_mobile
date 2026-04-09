@@ -1,3 +1,4 @@
+import 'package:brixel/ui/pages/ConversationPage.dart';
 import 'package:brixel/ui/pages/pageVendeur/DashbordVendeur.dart';
 import 'package:brixel/ui/pages/pageVendeur/StockPage.dart';
 import 'package:flutter/material.dart';
@@ -53,47 +54,50 @@ class _MainNavigationState extends State<MainNavigation> {
         const DashboardVendeur(),
         const StockPage(),
         const Center(child: Text("Commandes Reçues")),
-        const Center(child: Text("Profil Boutique")),
+        ConversationPage(),
       ];
 
       navItems = const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
         BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Stock'),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Ventes'),
-        BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Boutique'),
+        BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'ventes'),
+        BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Discussions'),
       ];
     } else if(role == "CLIENT"){
       // --- CONFIGURATION CLIENT / GUEST ---
       pages = [
         const HomePage(),
-        const Center(child: Text("Recherche")), // Ou LoginPage() selon ton besoin
+        const Center(child: Text("Favoris")),
         //const LoginPage(),
-        const Center(child: Text("Historique")),
+        const Center(child: Text("Quincaillerie")),
         //const RegisterPage(page: HomePage(), label: ""),
-        const Center(child: Text("Profil")),
+        ConversationPage(),
+
       ];
 
       navItems = const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-        BottomNavigationBarItem(icon: Icon(Icons.propane_tank_outlined), label: 'Projet'),
+        //BottomNavigationBarItem(icon: Icon(Icons.propane_tank_outlined), label: 'Projet'),
         BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Favoris'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Quincaillerie'),
+        //BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Discussion'),
       ];
     }else{
       pages = [
         const HomePage(),
-        const Center(child: Text("Recherche")), // Ou LoginPage() selon ton besoin
+        const Center(child: Text("Favoris")), // Ou LoginPage() selon ton besoin
         //const LoginPage(),
-        const Center(child: Text("Historique")),
+        const Center(child: Text("Quincaillerie")),
         //const RegisterPage(page: HomePage(), label: ""),
-        const Center(child: Text("Profil")),
+        const Center(child: Text("Discussion")),
       ];
 
       navItems = const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-        BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'rien'),
-        BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'rien'),
-        BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'rien'),
+        BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favoris'),
+        BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Quincaillerie'),
+        BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Discussions'),
       ];
     }
 

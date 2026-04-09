@@ -2,7 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../hive/CartService.dart';
+import '../service/hive/PanierHiveService.dart';
+import '../service/message/MessageStomp.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -40,19 +41,24 @@ class UserProvider extends ChangeNotifier {
       _currentUser = user;
 
       if (user == null) {
-
-        _role            = null;
+        _role = null;
         _quincaillerieId = null;
-        _token           = null;
-        _status          = AuthStatus.unauthenticated;
-
+        _token = null;
+        _status = AuthStatus.unauthenticated;
+        MessageStomp().disconnect();
         await _clearLocalSession();
-
         notifyListeners();
       } else {
-
         _status = AuthStatus.authenticated;
+
         await _loadUserClaims(user);
+
+        if(_token != null ){
+          debugPrint("Initialisation STOMP avec Token présent");
+          String identifier = (_role == "VENDEUR" && _quincaillerieId != null) ? _quincaillerieId! : user.uid;
+          MessageStomp().init(identifier, _token!);
+
+        }
       }
     });
   }
@@ -104,8 +110,8 @@ class UserProvider extends ChangeNotifier {
     await _userBox.delete(_keyQuincId);
 
 
-    final CartService cartService = CartService();
-    await cartService.clearCart();
+    final PanierHiveService panierHiveService = PanierHiveService();
+    await panierHiveService.clearCart();
   }
 
 
@@ -114,11 +120,18 @@ class UserProvider extends ChangeNotifier {
     if (user != null) {
       try {
 
-        await user.getIdTokenResult(true);
+        final idTokenResult = await user.getIdTokenResult(true);
+        _token = idTokenResult.token;
+
+
         await _loadUserClaims(user);
-        debugPrint("Claims rafraîchis après login : rôle = $_role");
+
+
+        String identifier = (_role == "VENDEUR") ? _quincaillerieId! : user.uid;
+        MessageStomp().init(identifier, _token!);
+
       } catch (e) {
-        debugPrint("Erreur refresh claims après login : $e");
+        debugPrint("Erreur refresh claims : $e");
       }
     }
   }

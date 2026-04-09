@@ -50,46 +50,80 @@ class _RegisterVendeur3State extends State<RegisterVendeur3> {
     setState(() => _isLoadingLocation = true);
 
     try {
-      var status = await Permission.location.request();
-
-      if (status.isGranted) {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-
-        if (!mounted) return;
-
-        setState(() {
-          _selectedLocation = LatLng(position.latitude, position.longitude);
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Position récupérée : ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}",
+      // 1. Vérifier si le GPS est activé
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Veuillez activer le GPS de votre appareil"),
+              backgroundColor: Colors.red,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("La localisation est nécessaire pour continuer"),
-            backgroundColor: Colors.red,
-          ),
-        );
+          );
+        }
+        return;
       }
+
+      // 2. Vérifier/demander la permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("La localisation est nécessaire pour continuer"),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Permission refusée définitivement. Activez-la dans les paramètres."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          await Geolocator.openAppSettings();
+        }
+        return;
+      }
+
+      // 3. Récupérer la position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _selectedLocation = LatLng(position.latitude, position.longitude);
+      });
+
+      print("Position récupérée : ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Position récupérée : ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}",
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
+      print("Erreur: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erreur : $e"), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoadingLocation = false);
-      }
+      if (mounted) setState(() => _isLoadingLocation = false);
     }
   }
 

@@ -1,14 +1,16 @@
 import 'package:brixel/data/modele/Cart.dart';
+import 'package:brixel/provider/LocationProvider.dart';
 import 'package:brixel/provider/SuggestionProvider.dart';
 import 'package:brixel/ui/theme/AppTheme.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
-import 'hive/CartService.dart';
+import 'service/hive/PanierHiveService.dart';
 import 'provider/UserProvider.dart';
 import 'ui/widgets/MainNavigation.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +22,7 @@ Future<void> main() async {
     debugPrint("Erreur Firebase init: $e");
   }
 
-  await CartService.init();
+  await PanierHiveService.init();
   runApp(const MyApp());
 }
 
@@ -36,10 +38,14 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
             create: (context) => SuggestionProvider()
+        ),
+        ChangeNotifierProvider(
+            create: (context) => LocationProvider()
         )
       ],
       child: MaterialApp(
-        title: 'Nom De l’App',
+        title: 'Brixel',
+        navigatorObservers: [routeObserver],
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const MainNavigation(),

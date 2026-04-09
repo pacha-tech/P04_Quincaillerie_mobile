@@ -22,7 +22,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFFFFA000),
-        secondary: const Color(0xFF0F2063),
+        secondary: Color(0xFF0D47A1),
         primary: Colors.brown,
         surface: Colors.grey[50]!,
         error: Colors.redAccent,

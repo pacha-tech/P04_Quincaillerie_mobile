@@ -3,6 +3,7 @@ import 'package:brixel/service/ProductService.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../Exception/AppException.dart';
 import '../../Exception/NoInternetConnectionException.dart';
 import '../../Exception/ProductNotFoundException.dart';
 
@@ -42,7 +43,7 @@ class DeleteProductPopup extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Titre
+
             Text(
               "Voulez vous vraiment supprimer le produit $name ?",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
@@ -96,7 +97,18 @@ class DeleteProductPopup extends StatelessWidget {
                           btnOkColor: colorScheme.error,
                         ).show();
 
-                      } on DioException catch(e) {
+                      } on AppException catch(e){
+
+                        AwesomeDialog(
+                          context: context,
+                          dialogType: DialogType.error,
+                          title: "Erreur",
+                          desc: e.message,
+                          btnOkText: "OK",
+                          btnOkColor: colorScheme.error,
+                        ).show();
+
+                      }on DioException catch(e) {
 
                         AwesomeDialog(
                           context: context,

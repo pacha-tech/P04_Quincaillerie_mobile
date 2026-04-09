@@ -9,12 +9,16 @@ class ProductStock {
   final String? imageUrl;
   final String descriptionProduit;
   final double purchasePrice;
+  final double? pricepromo;
+  final bool inPromotion;
+  final double? taux;
 
 
   ProductStock({
     required this.id, required this.name, required this.brand,
     required this.category, required this.stock, required this.unit,
-    required this.sellPrice, this.imageUrl , required this.descriptionProduit , required this.purchasePrice
+    required this.sellPrice, this.imageUrl , required this.descriptionProduit , required this.purchasePrice,required this.pricepromo,
+    required this.inPromotion , required this.taux
   });
 
   factory ProductStock.fromJson(Map<String, dynamic> json) {
@@ -28,7 +32,10 @@ class ProductStock {
       sellPrice: double.tryParse(json['sellPrice'].toString())?? 0.0,
       imageUrl: json['imageUrl'],
       descriptionProduit: json['description'] ?? '',
-      purchasePrice: double.tryParse(json['purchasePrice'].toString())?? 0.0
+      purchasePrice: double.tryParse(json['purchasePrice'].toString())?? 0.0,
+      pricepromo: double.tryParse(json['pricePromo'].toString()),
+      inPromotion: json['inPromotion'],
+      taux: double.tryParse(json['taux'].toString()),
     );
   }
 }

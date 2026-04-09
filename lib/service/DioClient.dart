@@ -10,9 +10,11 @@ class DioClient {
 
   DioClient._internal() {
     dio = Dio(BaseOptions(
-      baseUrl: 'http://192.168.1.177:9010/quincaillerie',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      baseUrl: 'http://192.168.0.109:9010/quincaillerie',
+      //baseUrl: 'https://p04-quincaillerie.onrender.com/quincaillerie',
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
     ));
 
     dio.interceptors.add(InterceptorsWrapper(
@@ -26,8 +28,8 @@ class DioClient {
         return handler.next(options);
       },
       onError: (e, handler) {
-        print("🚨 Erreur API [${e.response?.statusCode}]: ${e.message}");
 
+        print("🚨 Erreur API [${e.response?.statusCode}]: ${e.message}");
 
         return handler.next(e);
       },
