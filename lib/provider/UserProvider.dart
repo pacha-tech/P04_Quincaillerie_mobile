@@ -56,7 +56,7 @@ class UserProvider extends ChangeNotifier {
         if(_token != null ){
           debugPrint("Initialisation STOMP avec Token présent");
           String identifier = (_role == "VENDEUR" && _quincaillerieId != null) ? _quincaillerieId! : user.uid;
-          MessageStomp().init(identifier, _token!);
+          MessageStomp().init(identifier, _getFreshToken);
 
         }
       }
@@ -128,12 +128,19 @@ class UserProvider extends ChangeNotifier {
 
 
         String identifier = (_role == "VENDEUR") ? _quincaillerieId! : user.uid;
-        MessageStomp().init(identifier, _token!);
+        MessageStomp().init(identifier, _getFreshToken);
 
       } catch (e) {
         debugPrint("Erreur refresh claims : $e");
       }
     }
+  }
+
+  Future<String?> _getFreshToken() async {
+    if (_currentUser != null) {
+      return await _currentUser!.getIdToken();
+    }
+    return null;
   }
 
   Future<void> refreshUser() async {
@@ -144,6 +151,10 @@ class UserProvider extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
       notifyListeners();
     }
+  }
+
+  String get myId {
+    return _currentUser?.uid ?? "";
   }
 
   Future<void> signOut() async {

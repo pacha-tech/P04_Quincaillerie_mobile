@@ -1,6 +1,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
@@ -10,11 +11,12 @@ class DioClient {
 
   DioClient._internal() {
     dio = Dio(BaseOptions(
-      baseUrl: 'http://192.168.0.109:9010/quincaillerie',
+      baseUrl: kIsWeb ? 'http://localhost:9010/quincaillerie' : 'http://192.168.0.109:9010/quincaillerie',
       //baseUrl: 'https://p04-quincaillerie.onrender.com/quincaillerie',
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
-      sendTimeout: const Duration(seconds: 30),
+      //sendTimeout: const Duration(seconds: 30),
+      sendTimeout: kIsWeb ? null : Duration(seconds: 30),
     ));
 
     dio.interceptors.add(InterceptorsWrapper(

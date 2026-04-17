@@ -6,7 +6,7 @@ class Message {
   final String? idSender;
   final String? idReceiver;
   final String? contenu;
-  final bool estLu;
+  bool estLu;
   final DateTime? luAt;
   final DateTime createdAt;
 
@@ -14,7 +14,7 @@ class Message {
 
   factory Message.fromJson(Map<String , dynamic> json){
     return Message(
-      idMessage: json["idMesssage"],
+      idMessage: json["idMessage"],
       idConversation: json["idConversation"],
       nomSender: json["nomSender"],
       idSender: json["idSender"],

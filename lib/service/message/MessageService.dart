@@ -25,4 +25,25 @@ class MessageService {
     }
   }
 
+  Future<void> markRead(List<String> idMessages) async {
+    try {
+      await _dio.post(
+          "/message/markRead",
+          data: idMessages,
+          options: Options(contentType: Headers.jsonContentType),
+      );
+    } on DioException catch (e) {
+
+      if (e.response == null) {
+        throw NoInternetConnectionException("Vérifiez votre connexion internet");
+      }
+
+      final status = e.response!.statusCode;
+      final message = e.response!.data['message'] ?? "Erreur inconnue";
+
+      throw AppException("Une erreur est survenue. Réessayez plus tard.");
+
+    }
+  }
+
 }

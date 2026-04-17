@@ -1,5 +1,5 @@
 
-import 'package:brixel/service/cloudinary/CloudinaryService.dart';
+import 'package:brixel/Exception/NoInternetConnectionException.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -8,6 +8,7 @@ import 'package:brixel/data/modele/Cart.dart';
 import 'package:brixel/service/hive/PanierHiveService.dart';
 import 'package:brixel/service/PanierService.dart';
 import '../../data/modele/Conversation.dart';
+import '../../service/cloudinary/CloudinaryService.dart';
 import 'ChatPage.dart';
 
 class CartDetailPage extends StatefulWidget {
@@ -29,9 +30,45 @@ class CartDetailPage extends StatefulWidget {
 class _CartDetailPageState extends State<CartDetailPage> {
   final PanierHiveService _panierHive = PanierHiveService();
   final PanierService _panierService = PanierService();
-  CloudinaryService _cloudinaryService = CloudinaryService();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
   static const String _boxName = "productBox";
 
+  @override
+  void initState() {
+    super.initState();
+    _initHive();
+    _loadCartInBD();
+  }
+
+  Future<void> _initHive() async {
+    if (!Hive.isBoxOpen(_boxName)) {
+      await Hive.openBox(_boxName);
+    }
+  }
+
+  Future<void> _loadCartInBD() async {
+    try {
+      // 1. Récupérer TOUS les paniers depuis la base de données
+      final List<Cart> allCartFromDB = await _panierService.getAllProductInPanier();
+
+      // 2. Accéder à la boîte Hive
+      final box = Hive.box(_boxName);
+
+      // 3. Vider totalement l'ancien contenu de Hive (pour l'écraser)
+      await box.clear();
+
+      // 4. Préparer les nouvelles données pour Hive
+      final Map<String, dynamic> newHiveEntries = {
+        for (var item in allCartFromDB) item.idPrice: item.toMap()
+      };
+
+      // 5. Sauvegarder dans Hive
+      await box.putAll(newHiveEntries);
+
+    } catch (e) {
+      debugPrint("Erreur lors de la synchronisation du panier avec la BD : $e");
+    }
+  }
 
   String _generateChatMessage(List<Cart> items, double total) {
     final buffer = StringBuffer(
@@ -44,7 +81,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
     buffer.write("\n💰 *Total actuel : ${total.toStringAsFixed(0)} FCFA*");
     return buffer.toString();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +147,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
     );
   }
 
-
   Widget _buildSummaryBanner(List<Cart> items, double total) {
     final int totalQty = items.fold(0, (s, i) => s + i.quantity);
     return Container(
@@ -151,12 +186,7 @@ class _CartDetailPageState extends State<CartDetailPage> {
     );
   }
 
-  Widget _buildBannerStat({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
+  Widget _buildBannerStat({required IconData icon, required String label, required String value, required Color color,}) {
     return Expanded(
       child: Column(
         children: [
@@ -177,7 +207,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
     height: 36,
     color: Colors.grey.shade200,
   );
-
 
   Widget _buildProductCard(Cart item) {
     final double unitPrice = item.inPromotion ? (item.pricePromo ?? 0) : item.price;
@@ -225,7 +254,7 @@ class _CartDetailPageState extends State<CartDetailPage> {
                         bottomRight: Radius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       "PROMO",
                       style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900),
                     ),
@@ -234,7 +263,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
             ],
           ),
           const SizedBox(width: 12),
-
 
           Expanded(
             child: Column(
@@ -301,7 +329,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
     );
   }
 
-
   Widget _buildQtySelector(Cart item) {
     return Container(
       decoration: BoxDecoration(
@@ -345,7 +372,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
       ),
     );
   }
-
 
   Widget _buildBottomAction(List<Cart> items, double total) {
     return Container(
@@ -418,7 +444,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
           ),
           const SizedBox(height: 14),
 
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -430,11 +455,15 @@ class _CartDetailPageState extends State<CartDetailPage> {
                     builder: (_) => ChatPage(
                       initialMessage: msg,
                       conversation: Conversation(
-                        idConversation: widget.idQuincaillerie,
+                        idConversation: null,
                         nameReceiver: widget.storeName,
                         lastMessage: "Demande de panier...",
                         updateAt: DateTime.now(),
+                        unreadCount: 1,
+                        lastMessageSenderId: '',
+                        lastMessageRead: false,
                       ),
+                      idQuincaillerie: widget.idQuincaillerie,
                     ),
                   ),
                 );
@@ -456,7 +485,6 @@ class _CartDetailPageState extends State<CartDetailPage> {
       ),
     );
   }
-
 
   Widget _buildEmptyState() => Center(
     child: Column(
@@ -489,17 +517,36 @@ class _CartDetailPageState extends State<CartDetailPage> {
     ),
   );
 
-
   Future<void> _updateQty(Cart item, int delta) async {
     if (item.quantity + delta <= 0) {
       _confirmDeleteItem(item);
-    } else {
-      item.quantity += delta;
-      await _panierHive.addToCart(item);
+      return;
+    }
+
+    final int oldQuantity = item.quantity;
+
+
+    item.quantity += delta;
+    await _panierHive.addToCart(item);
+
+    try {
       if (delta > 0) {
         await _panierService.addQuantityToPanier(item.idPrice);
+        _notify(Icons.check_circle,"+1 ${item.productName}", Colors.green);
+
       } else {
         await _panierService.removeQuantityToPanier(item.idPrice);
+        _notify(Icons.check_circle,"-1 ${item.productName}", Colors.orange);
+
+      }
+    } catch (e) {
+      item.quantity = oldQuantity;
+      await _panierHive.addToCart(item);
+
+      if(e is NoInternetConnectionException){
+        _notify(Icons.wifi_off, e.message, Colors.red);
+      }else{
+        _notify(Icons.error,"Erreur", Colors.red);
       }
     }
   }
@@ -509,23 +556,70 @@ class _CartDetailPageState extends State<CartDetailPage> {
       "Supprimer l'article ?",
       "Voulez-vous retirer ${item.productName} du panier ?",
     );
+
     if (res == true) {
+
+      final Cart backupItem = Cart.fromMap(item.toMap());
+
+
       await _panierHive.removeItem(item.idPrice);
-      await _panierService.deleteProductToPanier(item.idPrice);
+
+      try {
+        await _panierService.deleteProductToPanier(item.idPrice);
+        _notify(Icons.check_circle,"${item.productName} supprime avec succes", Colors.orange);
+
+      } catch (e) {
+        await _panierHive.addToCart(backupItem);
+
+        if(e is NoInternetConnectionException){
+          _notify(Icons.wifi_off, e.message, Colors.red);
+        }else{
+          _notify(Icons.error,"Erreur", Colors.red);
+        }
+
+      }
     }
   }
+
 
   void _confirmClearStoreCart() async {
     final bool? res = await _showConfirm(
       "Vider le panier ?",
       "Supprimer TOUS les articles de ${widget.storeName} ?",
     );
+
     if (res == true) {
       final box = Hive.box(_boxName);
-      final keys = box.keys
-          .where((k) => box.get(k)['idQuincaillerie'] == widget.idQuincaillerie)
-          .toList();
-      for (var k in keys) await box.delete(k);
+      final keys = box.keys.where((k) => box.get(k)['idQuincaillerie'] == widget.idQuincaillerie).toList();
+
+
+      final Map<dynamic, dynamic> backupData = {};
+      for (var k in keys) {
+        backupData[k] = box.get(k);
+      }
+
+
+      for (var k in keys) {
+        await box.delete(k);
+      }
+
+
+      try {
+        await _panierService.deletePanierByQuincaillerie(widget.idQuincaillerie);
+        _notify(Icons.check_circle," Panier supprimer avec succes", Colors.red);
+
+      } catch (e) {
+
+        for (var k in keys) {
+          await box.put(k, backupData[k]);
+        }
+
+        if(e is NoInternetConnectionException){
+          _notify(Icons.wifi_off, e.message, Colors.red);
+        }else{
+          _notify(Icons.error,"Erreur", Colors.red);
+        }
+      }
     }
   }
 
@@ -553,4 +647,50 @@ class _CartDetailPageState extends State<CartDetailPage> {
       ],
     ),
   );
+
+  void _notify(IconData icon, String text, Color color) {
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.92),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4))
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white, size: 17),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(text,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 2), () => entry.remove());
+  }
 }

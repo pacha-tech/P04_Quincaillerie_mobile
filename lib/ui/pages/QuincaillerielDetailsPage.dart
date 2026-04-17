@@ -1,3 +1,4 @@
+import 'package:brixel/Exception/AppException.dart';
 import 'package:brixel/Exception/NoInternetConnectionException.dart';
 import 'package:brixel/data/modele/ProductRecommended.dart';
 import 'package:brixel/data/modele/QuincaillerieDetail.dart';
@@ -75,7 +76,7 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
     super.dispose();
   }
 
-  // ── Initialisation ─────────────────────────────────────────────────────────
+
   void _initializeData() {
     final priceEntry = widget.product.prices.firstWhere(
           (p) => p.idQuincaillerie == widget.quincaillerieId,
@@ -83,9 +84,9 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
     );
     _dynamicStoreName = priceEntry.quincaillerieName;
 
-    _storeFuture = _quincaillerieService
-        .getDetailQuincaillerie(widget.quincaillerieId)
-        .then((value) {
+    _initHive();
+
+    _storeFuture = _quincaillerieService.getDetailQuincaillerie(widget.quincaillerieId).then((value) {
       if (value is QuincaillerieDetail && mounted) {
         setState(() {
           _storeDetail = value;
@@ -97,13 +98,10 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
     });
 
     _loadRecommandations(priceEntry.idPrice);
-    _initHive();
   }
 
   void _loadRecommandations(String mainProductIdPrice) {
-    _recommandationFuture = _productService
-        .getRecommandationByProductAndStore(
-        widget.product.idProduct, widget.quincaillerieId)
+    _recommandationFuture = _productService.getRecommandationByProductAndStore(widget.product.idProduct, widget.quincaillerieId)
         .then((v) => v.cast<ProductRecommended>())
         .then((suggestions) async {
       await _loadCartStatus([
@@ -114,12 +112,61 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
     });
   }
 
+
   Future<void> _loadCartStatus(List<String> ids) async {
-    final Map<String, int> temp = {
-      for (final id in ids)
-        id: _panierHiveService.getItem(id)?.quantity ?? 0
-    };
-    if (mounted) setState(() => _cartQuantities.addAll(temp));
+    try {
+
+      final futures = ids.map((id) => _panierService.getquantityInPanier(id));
+      final quantities = await Future.wait(futures);
+
+      final Map<String, int> temp = {};
+
+      for (int i = 0; i < ids.length; i++) {
+        final String id = ids[i];
+        final int serverQty = quantities[i];
+
+        temp[id] = serverQty;
+
+        final localItem = _panierHiveService.getItem(id);
+
+        if (serverQty > 0) {
+          if (localItem != null && localItem.quantity != serverQty) {
+
+            localItem.quantity = serverQty;
+            await _panierHiveService.addToCart(localItem);
+          }
+
+        } else {
+
+          if (localItem != null) {
+            await _panierHiveService.removeItem(id);
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _cartQuantities.addAll(temp);
+        });
+      }
+
+    } catch (e) {
+
+      final Map<String, int> fallback = {
+        for (final id in ids)
+          id: _panierHiveService.getItem(id)?.quantity ?? 0
+      };
+
+      if (mounted) {
+        setState(() {
+          _cartQuantities.addAll(fallback);
+        });
+      }
+
+      if (e is UserNotConnectedException && mounted) {
+
+      }
+    }
   }
 
   Future<void> _initHive() async {
@@ -127,7 +174,7 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
     if (mounted) setState(() => _isHiveReady = true);
   }
 
-  // ── Actions panier ─────────────────────────────────────────────────────────
+
   Future<void> _handleCartAction(ProductRecommended product, int delta) async {
     final String idPrice = product.idPrice;
     if (_loadingItems.contains(idPrice)) return;
@@ -267,6 +314,17 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
                   );
                 }
                 if (snapshot.hasError) {
+                  final error = snapshot.error;
+
+                  if(error is NoInternetConnectionException){
+                    return Center(
+                      child: ErrorWidgets(message: error.message , iconData: Icons.wifi_off, onRetry: _initializeData),
+                    );
+                  }else if(error is AppException){
+                    return Center(
+                      child: ErrorWidgets(message: error.message , iconData: Icons.wifi_off, onRetry: _initializeData),
+                    );
+                  }
                   return SizedBox(
                     height: 400,
                     child: ErrorWidgets(
@@ -833,11 +891,8 @@ class _QuincaillerieDetailsPageState extends State<QuincaillerieDetailsPage> wit
     return ValueListenableBuilder(
       valueListenable: Hive.box(_boxName).listenable(),
       builder: (context, Box box, _) {
-        final int count = box.values
-            .where((v) =>
-        Cart.fromMap(Map<dynamic, dynamic>.from(v)).idQuincaillerie ==
-            idQuincaillerie)
-            .length;
+        final int count = box.values.where((v) =>
+        Cart.fromMap(Map<dynamic, dynamic>.from(v)).idQuincaillerie == idQuincaillerie).length;
         return Stack(
           alignment: Alignment.center,
           children: [

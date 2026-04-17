@@ -1,5 +1,3 @@
-
-/*
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
@@ -12,7 +10,7 @@ import '../../../data/modele/Category.dart';
 import '../../../data/dto/product/AddProductDTO.dart';
 import '../../../service/ProductService.dart';
 import '../../../service/CategoryService.dart';
-import '../../widgets/MainNavigation.dart';
+import '../../theme/AppColors.dart';
 import 'UpdateStockPage.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -26,6 +24,7 @@ class _AddProductPageState extends State<AddProductPage> {
   final _formKey = GlobalKey<FormState>();
   final ProductService _productService = ProductService();
   final CategoryService _categoryService = CategoryService();
+
   bool _isLoading = false;
 
   final _nameController = TextEditingController();
@@ -38,27 +37,18 @@ class _AddProductPageState extends State<AddProductPage> {
   Category? _selectedCategory;
   String _selectedUnit = 'Unité';
   File? _imageFile;
-  final ImagePicker _picker = ImagePicker();
 
-  late ColorScheme colorScheme;
+  final ImagePicker _picker = ImagePicker();
   List<Category?> _categories = [];
-  final List<String> _units = ['Unité', 'Sac', 'Kilo', 'Mètre', 'Litre', 'Paquet', 'Tonne', 'Bar'];
+
+  final List<String> _units = [
+    'Unité', 'Sac', 'Kilo', 'Mètre', 'Litre', 'Paquet', 'Tonne', 'Barre'
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
-  }
-
-  Future<void> _loadCategories() async {
-    try {
-      final categories = await _categoryService.getAllCategory();
-      if (mounted) {
-        setState(() => _categories = categories);
-      }
-    } catch (e) {
-      debugPrint("Erreur chargement catégories : $e");
-    }
   }
 
   @override
@@ -72,12 +62,21 @@ class _AddProductPageState extends State<AddProductPage> {
     super.dispose();
   }
 
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _categoryService.getAllCategory();
+      if (mounted) setState(() => _categories = categories);
+    } catch (e) {
+      debugPrint("Erreur chargement catégories : $e");
+    }
+  }
+
   Future<void> _pickImage() async {
     if (_isLoading) return;
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 1080,
-      imageQuality: 85
+      imageQuality: 85,
     );
     if (picked != null) setState(() => _imageFile = File(picked.path));
   }
@@ -85,374 +84,8 @@ class _AddProductPageState extends State<AddProductPage> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final buyPrice = double.tryParse(_buyPriceController.text.trim()) ?? 0;
-    final sellPrice = double.tryParse(_sellPriceController.text.trim()) ?? 0;
-
-
-    if (_imageFile == null) {
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.question,
-        title: "Image manquante",
-        desc: "Souhaitez-vous enregistrer ce produit sans image ?",
-        btnCancelText: "Ajouter une photo",
-        btnOkText: "Continuer sans photo",
-        btnCancelOnPress: () {},
-        btnOkOnPress: () => _checkPrices(buyPrice, sellPrice),
-      ).show();
-      return;
-    }
-
-    _checkPrices(buyPrice, sellPrice);
-  }
-
-  void _checkPrices(double buyPrice, double sellPrice) {
-    if (sellPrice < buyPrice) {
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.warning,
-        title: "Prix de vente inférieur",
-        desc: "Le prix de vente est inférieur au prix d'achat.\nConfirmer quand même ?",
-        btnOkText: "Confirmer",
-        btnOkColor: Colors.green,
-        btnCancelText: "Annuler",
-        btnCancelOnPress: () {},
-        btnOkOnPress: () => _executeAddProduct(),
-      ).show();
-    } else {
-      _executeAddProduct();
-    }
-  }
-
-  Future<void> _executeAddProduct() async {
-    setState(() => _isLoading = true);
-
-    final dto = AddProductDTO(
-      name: _nameController.text.trim(),
-      brand: _brandController.text.trim(),
-      categoryId: _selectedCategory?.id ?? "",
-      purchasePrice: _buyPriceController.text.trim(),
-      sellingPrice: _sellPriceController.text.trim(),
-      quantite: int.tryParse(_stockController.text.trim()) ?? 0,
-      unite: _selectedUnit,
-      descriptionProduit: _descController.text.trim(),
-    );
-
-    try {
-
-      await _productService.addProduct(dto, _imageFile);
-
-      if (!mounted) return;
-
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.success,
-        title: "Succès !",
-        desc: "Produit ajouté avec succès",
-        btnOkText: "OK",
-        btnOkColor: Colors.green,
-        btnOkOnPress: () {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MainNavigation()),
-                (route) => false,
-          );
-        },
-      ).show();
-    } on ProductAlreadyExistsException catch (e) {
-      if (!mounted) return;
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.warning,
-        title: "Produit déjà existant",
-        desc: e.message,
-        btnOkText: "Modifier",
-        btnOkOnPress: () {},
-        btnCancelText: "Mettre à jour stock",
-        btnCancelColor: colorScheme.secondary,
-        btnCancelOnPress: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const UpdateStockPage()));
-        },
-      ).show();
-    } on NoInternetConnectionException catch (e) {
-      _showErrorDialog("Pas de connexion", e.message);
-    } on AppException catch (e) {
-      _showErrorDialog("Erreur", e.message);
-    } catch (e) {
-      _showErrorDialog("Erreur inattendue", "Une erreur est survenue.");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showErrorDialog(String title, String desc) {
-    if (!mounted) return;
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.error,
-      title: title,
-      desc: desc,
-      btnOkText: "OK",
-      btnOkColor: Colors.red,
-      btnOkOnPress: () {},
-    ).show();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: const Text("Créer un Nouveau Produit"),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle("INFORMATIONS GÉNÉRALES"),
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 110,
-                    width: 110,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: colorScheme.primary.withOpacity(0.2)),
-                    ),
-                    child: _imageFile != null
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.file(_imageFile!, fit: BoxFit.cover),
-                    )
-                        : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_a_photo_rounded, color: colorScheme.primary, size: 30),
-                        const Text("PHOTO", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildField(_nameController, "Nom du produit", Icons.shopping_bag_outlined),
-              const SizedBox(height: 15),
-              _buildField(_brandController, "Marque / Fabricant", Icons.branding_watermark_outlined),
-              const SizedBox(height: 15),
-              DropdownButtonFormField<Category?>(
-                value: _selectedCategory,
-                isExpanded: true,
-                decoration: _inputDecoration("Catégorie", Icons.category_outlined),
-                items: _categories.map((c) => DropdownMenuItem<Category?>(
-                  value: c,
-                  child: Text(c?.name ?? 'Inconnu'),
-                )).toList(),
-                onChanged: _isLoading ? null : (v) => setState(() => _selectedCategory = v),
-                validator: (v) => v == null ? "Obligatoire" : null,
-              ),
-              const SizedBox(height: 15),
-              _buildField(_descController, "Description", Icons.description_outlined, maxLines: 2),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
-              _buildSectionTitle("INVENTAIRE & PRIX"),
-              Row(
-                children: [
-                  Expanded(child: _buildField(_buyPriceController, "Prix d'achat", Icons.monetization_on_outlined, isNumber: true)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildField(_sellPriceController, "Prix de vente", Icons.sell_outlined, isNumber: true)),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 2, child: _buildField(_stockController, "Quantité", Icons.inventory_2_outlined, isNumber: true)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 3,
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedUnit,
-                      isExpanded: true,
-                      decoration: _inputDecoration("Unité", Icons.straighten_rounded),
-                      items: _units.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
-                      onChanged: (v) => setState(() => _selectedUnit = v!),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
-                  onPressed: _isLoading ? null : _submitForm,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("CRÉER ET AJOUTER AU STOCK", style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15, left: 4),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900,
-          fontSize: 12,
-          color: Colors.blueGrey,
-          letterSpacing: 1.1)
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none
-      ),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.1))
-      ),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2)
-      ),
-    );
-  }
-
-  Widget _buildField(TextEditingController controller, String label, IconData icon, {int maxLines = 1, bool isNumber = false}) {
-    return TextFormField(
-      controller: controller,
-      enabled: !_isLoading,
-      maxLines: maxLines,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: _inputDecoration(label, icon),
-      validator: (v) => v!.isEmpty ? "Obligatoire" : null,
-    );
-  }
-}
- */
-
-import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-
-import '../../../Exception/AppException.dart';
-import '../../../Exception/NoInternetConnectionException.dart';
-import '../../../Exception/ProductAlreadyExistsException.dart';
-import '../../../data/modele/Category.dart';
-import '../../../data/dto/product/AddProductDTO.dart';
-import '../../../service/ProductService.dart';
-import '../../../service/CategoryService.dart';
-import '../../widgets/MainNavigation.dart';
-import 'UpdateStockPage.dart';
-
-import '../../../ui/theme/AppColors.dart';   // ← Utilisation de tes couleurs
-
-class AddProductPage extends StatefulWidget {
-  const AddProductPage({super.key});
-
-  @override
-  State<AddProductPage> createState() => _AddProductPageState();
-}
-
-class _AddProductPageState extends State<AddProductPage> {
-  final _formKey = GlobalKey<FormState>();
-
-  final ProductService _productService = ProductService();
-  final CategoryService _categoryService = CategoryService();
-
-  bool _isLoading = false;
-
-  final _nameController = TextEditingController();
-  final _brandController = TextEditingController();
-  final _descController = TextEditingController();
-  final _buyPriceController = TextEditingController();
-  final _sellPriceController = TextEditingController();
-  final _stockController = TextEditingController();
-
-  Category? _selectedCategory;
-  String _selectedUnit = 'Unité';
-  File? _imageFile;
-
-  final ImagePicker _picker = ImagePicker();
-
-  List<Category?> _categories = [];
-  final List<String> _units = ['Unité', 'Sac', 'Kilo', 'Mètre', 'Litre', 'Paquet', 'Tonne', 'Bar'];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCategories();
-  }
-
-  Future<void> _loadCategories() async {
-    try {
-      final categories = await _categoryService.getAllCategory();
-      if (mounted) {
-        setState(() => _categories = categories);
-      }
-    } catch (e) {
-      debugPrint("Erreur chargement catégories : $e");
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _brandController.dispose();
-    _descController.dispose();
-    _buyPriceController.dispose();
-    _sellPriceController.dispose();
-    _stockController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    if (_isLoading) return;
-
-    final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1080,
-      imageQuality: 85,
-    );
-
-    if (picked != null) {
-      setState(() => _imageFile = File(picked.path));
-    }
-  }
-
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final buyPrice = double.tryParse(_buyPriceController.text.trim()) ?? 0;
-    final sellPrice = double.tryParse(_sellPriceController.text.trim()) ?? 0;
+    final double buyPrice = double.tryParse(_buyPriceController.text.trim()) ?? 0;
+    final double sellPrice = double.tryParse(_sellPriceController.text.trim()) ?? 0;
 
     if (_imageFile == null) {
       AwesomeDialog(
@@ -467,7 +100,6 @@ class _AddProductPageState extends State<AddProductPage> {
       ).show();
       return;
     }
-
     _checkPrices(buyPrice, sellPrice);
   }
 
@@ -505,9 +137,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
     try {
       await _productService.addProduct(dto, _imageFile);
-
       if (!mounted) return;
-
       AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
@@ -515,9 +145,7 @@ class _AddProductPageState extends State<AddProductPage> {
         desc: "Produit ajouté avec succès",
         btnOkText: "OK",
         btnOkColor: AppColors.priceGreen,
-        btnOkOnPress: () {
-          Navigator.pop(context,true);
-        },
+        btnOkOnPress: () => Navigator.pop(context, true),
       ).show();
     } on ProductAlreadyExistsException catch (e) {
       if (!mounted) return;
@@ -530,15 +158,16 @@ class _AddProductPageState extends State<AddProductPage> {
         btnOkOnPress: () {},
         btnCancelText: "Mettre à jour stock",
         btnCancelColor: AppColors.accent,
-        btnCancelOnPress: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const UpdateStockPage()));
-        },
+        btnCancelOnPress: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const UpdateStockPage()),
+        ),
       ).show();
     } on NoInternetConnectionException catch (e) {
       _showErrorDialog("Pas de connexion", e.message);
     } on AppException catch (e) {
       _showErrorDialog("Erreur", e.message);
-    } catch (e) {
+    } catch (_) {
       _showErrorDialog("Erreur inattendue", "Une erreur est survenue.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -558,136 +187,98 @@ class _AddProductPageState extends State<AddProductPage> {
     ).show();
   }
 
+  // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text(
-          "Ajouter un Produit",
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-            letterSpacing: 0.3,
-          ),
-        ),
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        centerTitle: true,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Ajouter un produit",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+                letterSpacing: 0.3,
+              ),
+            ),
+            Text(
+              "Remplissez les informations",
+              style: TextStyle(color: Colors.white60, fontSize: 11),
+            ),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionTitle("INFORMATIONS GÉNÉRALES"),
+              // ── Photo picker ────────────────────────────────────────
+              _buildPhotoSection(),
+              const SizedBox(height: 20),
 
-              // Photo Picker - Style moderne et cohérent
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 130,
-                    width: 130,
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBg,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: AppColors.primary.withOpacity(0.15),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: _imageFile != null
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Image.file(_imageFile!, fit: BoxFit.cover),
-                    )
-                        : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_a_photo_rounded,
-                          color: AppColors.primary.withOpacity(0.65),
-                          size: 36,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          "Ajouter une photo",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              // ── Section infos générales ─────────────────────────────
+              _buildSectionHeader("Informations générales", Icons.info_outline_rounded),
+              const SizedBox(height: 12),
 
-              const SizedBox(height: 32),
+              _buildField(_nameController, "Nom du produit",
+                  Icons.shopping_bag_outlined),
+              const SizedBox(height: 12),
+              _buildField(_brandController, "Marque / Fabricant",
+                  Icons.branding_watermark_outlined),
+              const SizedBox(height: 12),
+              _buildCategoryDropdown(),
+              const SizedBox(height: 12),
+              _buildField(_descController, "Description",
+                  Icons.description_outlined,
+                  maxLines: 3),
 
-              _buildField(_nameController, "Nom du produit", Icons.shopping_bag_outlined),
-              const SizedBox(height: 16),
-              _buildField(_brandController, "Marque / Fabricant", Icons.branding_watermark_outlined),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              DropdownButtonFormField<Category?>(
-                value: _selectedCategory,
-                isExpanded: true,
-                decoration: _inputDecoration("Catégorie", Icons.category_outlined),
-                items: _categories.map((c) => DropdownMenuItem<Category?>(
-                  value: c,
-                  child: Text(c?.name ?? "Sélectionner une catégorie"),
-                )).toList(),
-                onChanged: _isLoading ? null : (v) => setState(() => _selectedCategory = v),
-                validator: (v) => v == null ? "Veuillez choisir une catégorie" : null,
-              ),
+              // ── Section inventaire ──────────────────────────────────
+              _buildSectionHeader("Inventaire & Prix", Icons.payments_outlined),
+              const SizedBox(height: 12),
 
-              const SizedBox(height: 16),
-              _buildField(_descController, "Description", Icons.description_outlined, maxLines: 3),
-
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 28),
-                child: Divider(height: 1, thickness: 0.6, color: Colors.grey),
-              ),
-
-              _buildSectionTitle("INVENTAIRE & PRIX"),
-
+              // Ligne prix
               Row(
                 children: [
                   Expanded(
                     child: _buildField(
                       _buyPriceController,
-                      "Prix d'achat (FCFA)",
+                      "Prix d'achat",
                       Icons.monetization_on_outlined,
                       isNumber: true,
+                      suffix: "FCFA",
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: _buildField(
                       _sellPriceController,
-                      "Prix de vente (FCFA)",
+                      "Prix de vente",
                       Icons.sell_outlined,
                       isNumber: true,
+                      suffix: "FCFA",
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
 
-              const SizedBox(height: 16),
-
+              // Ligne stock + unité
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -700,50 +291,25 @@ class _AddProductPageState extends State<AddProductPage> {
                       isNumber: true,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     flex: 3,
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedUnit,
-                      isExpanded: true,
-                      decoration: _inputDecoration("Unité", Icons.straighten_rounded),
-                      items: _units.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
-                      onChanged: (v) => setState(() => _selectedUnit = v!),
-                    ),
+                    child: _buildUnitDropdown(),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 12),
 
-              // Bouton principal
-              SizedBox(
-                width: double.infinity,
-                height: 58,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _submitForm,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                    "CRÉER ET AJOUTER AU STOCK",
-                    style: TextStyle(
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ),
-              ),
+              // Indicateur marge bénéficiaire
+              _buildMargeIndicator(),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 28),
+
+              // ── Bouton principal ────────────────────────────────────
+              _buildSubmitButton(),
+
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -751,64 +317,306 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  // ====================== WIDGETS HELPERS ======================
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 14,
-          color: AppColors.primary,
-          letterSpacing: 1.1,
+  // ── Photo section ──────────────────────────────────────────────────────────
+  Widget _buildPhotoSection() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        width: double.infinity,
+        height: 140,
+        decoration: BoxDecoration(
+          color: AppColors.cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _imageFile != null
+                ? AppColors.primary.withOpacity(0.3)
+                : Colors.grey.shade200,
+            width: _imageFile != null ? 1.5 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: _imageFile != null
+            ? Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(19),
+              child: Image.file(
+                _imageFile!,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Overlay modifier
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit_rounded,
+                        color: Colors.white, size: 13),
+                    SizedBox(width: 4),
+                    Text(
+                      "Modifier",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        )
+            : Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.add_a_photo_rounded,
+                  color: AppColors.primary, size: 26),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Ajouter une photo du produit",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              "Appuyez pour choisir depuis la galerie",
+              style: TextStyle(
+                  fontSize: 11, color: Colors.grey.shade400),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 22, color: AppColors.primary.withOpacity(0.75)),
-      filled: true,
-      fillColor: AppColors.cardBg,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide.none,
+  // ── En-tête de section (cohérent avec StockPage et DashboardVendeur) ────────
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 11,
+            color: AppColors.primary,
+            letterSpacing: 1.1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Indicateur de marge ────────────────────────────────────────────────────
+  Widget _buildMargeIndicator() {
+    final double buy = double.tryParse(_buyPriceController.text) ?? 0;
+    final double sell = double.tryParse(_sellPriceController.text) ?? 0;
+
+    if (buy <= 0 || sell <= 0) return const SizedBox.shrink();
+
+    final double marge = sell - buy;
+    final double taux = (marge / buy) * 100;
+    final bool positive = marge >= 0;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: positive ? AppColors.greenLight : AppColors.closedLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: positive
+              ? AppColors.statusOpen.withOpacity(0.3)
+              : AppColors.accent.withOpacity(0.3),
+        ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: Colors.grey.withOpacity(0.15)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: AppColors.primary, width: 2.2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: AppColors.accent, width: 1.8),
+      child: Row(
+        children: [
+          Icon(
+            positive
+                ? Icons.trending_up_rounded
+                : Icons.trending_down_rounded,
+            size: 18,
+            color: positive ? AppColors.statusOpen : AppColors.accent,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              positive
+                  ? "Marge : +${marge.toStringAsFixed(0)} FCFA (${taux.toStringAsFixed(1)}%)"
+                  : "Attention : marge négative de ${marge.toStringAsFixed(0)} FCFA",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color:
+                positive ? AppColors.greenDark : AppColors.closedDark,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  // ── Dropdown catégorie ─────────────────────────────────────────────────────
+  Widget _buildCategoryDropdown() {
+    return DropdownButtonFormField<Category?>(
+      value: _selectedCategory,
+      isExpanded: true,
+      decoration: _inputDecoration("Catégorie", Icons.category_outlined),
+      items: _categories
+          .map((c) => DropdownMenuItem<Category?>(
+        value: c,
+        child: Text(c?.name ?? "Sélectionner une catégorie",
+            style: const TextStyle(fontSize: 13)),
+      ))
+          .toList(),
+      onChanged: _isLoading ? null : (v) => setState(() => _selectedCategory = v),
+      validator: (v) => v == null ? "Veuillez choisir une catégorie" : null,
+    );
+  }
+
+  // ── Dropdown unité ─────────────────────────────────────────────────────────
+  Widget _buildUnitDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedUnit,
+      isExpanded: true,
+      decoration: _inputDecoration("Unité", Icons.straighten_rounded),
+      items: _units
+          .map((u) => DropdownMenuItem(
+        value: u,
+        child: Text(u, style: const TextStyle(fontSize: 13)),
+      ))
+          .toList(),
+      onChanged: (v) => setState(() => _selectedUnit = v!),
+    );
+  }
+
+  // ── Bouton submit ──────────────────────────────────────────────────────────
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _submitForm,
+        icon: _isLoading
+            ? const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+              color: Colors.white, strokeWidth: 2),
+        )
+            : const Icon(Icons.add_circle_outline_rounded,
+            color: Colors.white, size: 18),
+        label: Text(
+          _isLoading ? "Enregistrement..." : "CRÉER ET AJOUTER AU STOCK",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
+  // ── Champ texte ────────────────────────────────────────────────────────────
   Widget _buildField(
       TextEditingController controller,
       String label,
       IconData icon, {
         int maxLines = 1,
         bool isNumber = false,
+        String? suffix,
       }) {
     return TextFormField(
       controller: controller,
       enabled: !_isLoading,
       maxLines: maxLines,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: _inputDecoration(label, icon),
-      validator: (v) => v!.trim().isEmpty ? "Ce champ est obligatoire" : null,
-      style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w500),
+      style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary),
+      onChanged: isNumber ? (_) => setState(() {}) : null,
+      decoration: _inputDecoration(label, icon).copyWith(
+        suffixText: suffix,
+        suffixStyle: const TextStyle(
+            fontSize: 11,
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w500),
+      ),
+      validator: (v) =>
+      v!.trim().isEmpty ? "Ce champ est obligatoire" : null,
+    );
+  }
+
+  // ── Décoration input (cohérente avec AddPromotionPage) ─────────────────────
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle:
+      const TextStyle(fontSize: 13, color: AppColors.textMuted),
+      prefixIcon: Icon(icon, size: 18, color: AppColors.primary),
+      filled: true,
+      fillColor: AppColors.cardBg,
+      contentPadding:
+      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:
+        const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.accent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:
+        const BorderSide(color: AppColors.accent, width: 1.5),
+      ),
     );
   }
 }
